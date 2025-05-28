@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="site-title">Weyn's Burger - DE BACON À VIDA!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices: 
+        - Goal: Provide a complete admin panel demo with dev mode protection.
+        - Viz/Presentation Method: 
+            - Developer Login: Simple form before accessing developer tools.
+            - Admin Panel: All subsections (Dashboard, Orders, Products, Customers, Reports, Settings) have their initial HTML structure in place and are managed by JS for dynamic content.
+        - Interaction: Admin login, dev login, tab navigation, CRUD operations, order status changes, filter application, dynamic style changes.
+        - Justification: Offers a comprehensive and secure (simulated) demo of admin and developer functionalities.
+        - Library/Method: Vanilla JavaScript, Tailwind CSS, Chart.js, Fetch API for Gemini.
+    -->
+    <style id="dynamic-styles">
+        :root {
+            --primary-color: #f97316; 
+            --primary-color-hover: #ea580c; 
+            --background-color: #fef3c7; 
+            --text-color-base: #374151; 
+            --text-color-header: #fef3c7; 
+            --header-bg-color: #1f2937; 
+            --font-family-main: 'Inter', sans-serif;
+        }
+        body {
+            font-family: var(--font-family-main);
+            background-color: var(--background-color);
+            color: var(--text-color-base);
+        }
+        .bg-primary { background-color: var(--primary-color); }
+        .hover\:bg-primary-hover:hover { background-color: var(--primary-color-hover); }
+        .text-primary { color: var(--primary-color); }
+        .border-primary { border-color: var(--primary-color); }
+        .focus\:ring-primary:focus { --tw-ring-color: var(--primary-color); }
+        .focus\:border-primary:focus { border-color: var(--primary-color); }
+        .form-checkbox.text-primary:checked { background-color: var(--primary-color); border-color: var(--primary-color); }
+
+
+        
+        .bg-header { background-color: var(--header-bg-color); }
+        .text-header { color: var(--text-color-header); }
+
+
+        .content-section, .admin-main-subsection, .dev-subsection {
+            display: none;
+        }
+        .content-section.active, .admin-main-subsection.active, .dev-subsection.active {
+            display: block;
+        }
+        .carousel-item { display: none; }
+        .carousel-item.active { display: block; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 350px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #fcd9b6; }
+        ::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-color-hover); }
+        
+        .nav-link { transition: color 0.3s ease, border-bottom-color 0.3s ease; }
+        .nav-link.active-link, .nav-link:hover, 
+        .admin-nav-link.active-link, .admin-nav-link:hover,
+        .dev-nav-link.active-link, .dev-nav-link:hover { 
+            color: var(--primary-color) !important; 
+            border-bottom: 2px solid var(--primary-color) !important; 
+        }
+        .admin-nav-link.active-link, .dev-nav-link.active-link {
+             background-color: var(--primary-color) !important; 
+             color: white !important;
+        }
+
+
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;}
+        .modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 700px; border-radius: 0.5rem; position: relative; }
+        .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; position: absolute; top: 10px; right: 20px; }
+        .close-button:hover, .close-button:focus { color: black; text-decoration: none; cursor: pointer; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 5px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-content, #printable-content * { visibility: visible; }
+            #printable-content { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+            header, footer, .admin-controls, .no-print, #admin-panel-section aside, #developer-mode-panel aside, #return-to-admin-btn { display: none !important; }
+            .modal-content { margin: 0; width: 100%; border: none; box-shadow: none; }
+        }
+        .admin-nav-link, .dev-nav-link {
+            display: block; padding: 0.75rem 1rem; border-radius: 0.375rem;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+         .admin-nav-link:hover, .dev-nav-link:hover { background-color: var(--primary-color-hover); color: white !important; } 
+        
+        #return-to-admin-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .input-admin {
+            margin-top: 0.25rem; 
+            width: 100%; 
+            padding: 0.5rem; 
+            border-width: 1px; 
+            border-color: #d1d5db; 
+            border-radius: 0.375rem; 
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .input-admin:focus {
+            --tw-ring-color: var(--primary-color);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--tw-ring-color);
+        }
+        .input-admin-check {
+            height: 1rem;
+            width: 1rem;
+            color: var(--primary-color);
+            border-color: #9ca3af; 
+            border-radius: 0.25rem;
+        }
+        .input-admin-check:focus {
+             --tw-ring-color: var(--primary-color);
+        }
+        .btn-admin-action {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            transition-property: background-color;
+            transition-duration: 300ms;
+        }
+        .btn-admin-action:hover { background-color: var(--primary-color-hover); }
+
+        .btn-admin-save { background-color: #10b981; color: white; font-weight: 600; padding: 0.5rem 1rem; border-radius: 0.375rem; }
+        .btn-admin-save:hover { background-color: #059669; }
+        .btn-admin-cancel { background-color: #9ca3af; color: white; font-weight: 600; padding: 0.5rem 1rem; border-radius: 0.375rem; }
+        .btn-admin-cancel:hover { background-color: #6b7280; }
+
+    </style>
+</head>
+<body class="text-neutral-800">
+
+    <header class="bg-header text-header sticky top-0 z-50 shadow-lg no-print">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="#" onclick="showSection('home-section', this); setActiveNavLink(this);" class="text-3xl font-bold text-primary">
+                    Weyn's<span id="header-brand-suffix" class="text-header">Burger</span>
+                </a>
+                <nav class="hidden md:flex space-x-1 items-center">
+                    <a href="#" onclick="showSection('home-section', this); setActiveNavLink(this);" class="nav-link px-3 py-2 rounded-md text-sm font-medium active-link">Início</a>
+                    <a href="#" onclick="showSection('cardapio-section', this); setActiveNavLink(this);" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Cardápio</a>
+                    <a href="#" onclick="showSection('promocoes-section', this); setActiveNavLink(this);" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Promoções</a>
+                    <a href="#" onclick="showSection('clube-section', this); setActiveNavLink(this);" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Clube Weyn's</a>
+                    <a href="#" onclick="showSection('sobre-section', this); setActiveNavLink(this);" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Sobre Nós</a>
+                    <a href="#" onclick="showSection('contato-section', this); setActiveNavLink(this);" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Contato</a>
+                    <a href="#" onclick="showSection('admin-login-section', this); setActiveNavLink(this);" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Loja</a>
+                    <button onclick="showSection('cardapio-section', document.querySelector('nav a[onclick*=\'cardapio-section\']'))" class="ml-4 bg-primary hover:bg-primary-hover text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Peça Já!
+                    </button>
+                    <div class="relative ml-2">
+                        <span class="text-xl">🛒</span>
+                        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                    </div>
+                </nav>
+                <div class="md:hidden flex items-center">
+                    <div class="relative mr-4">
+                        <span class="text-2xl text-header">🛒</span>
+                        <span id="mobile-cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                    </div>
+                    <button id="mobile-menu-button" class="text-header hover:text-primary focus:outline-none focus:text-primary">
+                        <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden bg-neutral-800">
+            <a href="#" onclick="showSection('home-section', this); toggleMobileMenu(); setActiveNavLink(this, true);" class="block nav-link text-header hover:bg-neutral-700 hover:text-primary px-3 py-3 text-base font-medium">Início</a>
+            <a href="#" onclick="showSection('cardapio-section', this); toggleMobileMenu(); setActiveNavLink(this, true);" class="block nav-link text-header hover:bg-neutral-700 hover:text-primary px-3 py-3 text-base font-medium">Cardápio</a>
+            <a href="#" onclick="showSection('promocoes-section', this); toggleMobileMenu(); setActiveNavLink(this, true);" class="block nav-link text-header hover:bg-neutral-700 hover:text-primary px-3 py-3 text-base font-medium">Promoções</a>
+            <a href="#" onclick="showSection('clube-section', this); toggleMobileMenu(); setActiveNavLink(this, true);" class="block nav-link text-header hover:bg-neutral-700 hover:text-primary px-3 py-3 text-base font-medium">Clube Weyn's</a>
+            <a href="#" onclick="showSection('sobre-section', this); toggleMobileMenu(); setActiveNavLink(this, true);" class="block nav-link text-header hover:bg-neutral-700 hover:text-primary px-3 py-3 text-base font-medium">Sobre Nós</a>
+            <a href="#" onclick="showSection('contato-section', this); toggleMobileMenu(); setActiveNavLink(this, true);" class="block nav-link text-header hover:bg-neutral-700 hover:text-primary px-3 py-3 text-base font-medium">Contato</a>
+            <a href="#" onclick="showSection('admin-login-section', this); toggleMobileMenu(); setActiveNavLink(this, true);" class="block nav-link text-header hover:bg-neutral-700 hover:text-primary px-3 py-3 text-base font-medium">Loja</a>
+            <button onclick="showSection('cardapio-section', document.querySelector('nav a[onclick*=\'cardapio-section\']')); toggleMobileMenu();" class="w-full my-2 bg-primary hover:bg-primary-hover text-white font-bold py-3 px-4 rounded-lg transition duration-300">
+                Peça Já!
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <section id="home-section" class="content-section active">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold text-neutral-900 mb-4">
+                    WEYN'S BURGER: <span class="text-primary">Irresistível.</span>
+                </h1>
+                <p class="text-xl sm:text-2xl text-neutral-700 font-semibold mb-6">DE BACON À VIDA!</p>
+                <p class="text-lg text-neutral-600 max-w-2xl mx-auto mb-8">
+                    A espera acabou. O sabor que vai te levar do bacon à vida está a um clique de distância. Prepare-se para uma experiência gastronômica que vai mudar seu conceito de hambúrguer!
+                </p>
+                <div class="space-y-4 sm:space-y-0 sm:space-x-4">
+                    <button onclick="showSection('cardapio-section', document.querySelector('nav a[onclick*=\'cardapio-section\']'))" class="bg-primary hover:bg-primary-hover text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 transform hover:scale-105">
+                        Ver Cardápio Completo
+                    </button>
+                    <button onclick="showSection('cardapio-section', document.querySelector('nav a[onclick*=\'cardapio-section\']'))" class="bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 transform hover:scale-105">
+                        Fazer Meu Pedido Agora!
+                    </button>
+                </div>
+            </div>
+            <div class="my-16 p-6 bg-white rounded-xl shadow-2xl">
+                <img src="https://placehold.co/1200x500/F97316/FFFFFF?text=Weyn's+Burger+Espetacular!" alt="[Imagem de Weyn's Burger Espetacular]" class="w-full h-auto object-cover rounded-lg shadow-md mb-6 max-h-[400px] sm:max-h-[500px]">
+                <p class="text-center text-neutral-600 text-md italic">A imagem acima é meramente ilustrativa, mas nosso sabor é real!</p>
+            </div>
+            <div class="my-16">
+                <h2 class="text-3xl font-bold text-center text-neutral-900 mb-2">🔥 Nossas Ofertas Que Vão Te Deixar de Queixo Caído! 🔥</h2>
+                <p class="text-center text-neutral-600 mb-8">Aproveite nossas promoções por tempo limitado. Sabor e economia andam juntos aqui!</p>
+                <div id="promotions-carousel-container" class="relative w-full max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-xl overflow-hidden">
+                    <div class="carousel-item active">
+                        <img src="https://placehold.co/800x400/FFC107/000000?text=Promo+1:+Combo+Duplo" alt="[Imagem da Promoção 1]" class="w-full h-auto object-cover rounded-md">
+                        <div class="mt-4 text-center"><h3 class="text-xl font-semibold text-neutral-800">Combo Duplo Weyn's</h3><p class="text-neutral-600">2 Weyn's Burgers + Batata Grande + 2 Refris por R$XX,XX</p><button onclick="showSection('promocoes-section', document.querySelector('nav a[onclick*=\'promocoes-section\']'))" class="mt-2 bg-primary hover:bg-primary-hover text-white font-semibold py-2 px-4 rounded-md transition duration-300">Aproveitar Agora!</button></div>
+                    </div>
+                    <div class="carousel-item"><img src="https://placehold.co/800x400/4CAF50/FFFFFF?text=Promo+2:+Terça+Smash" alt="[Imagem da Promoção 2]" class="w-full h-auto object-cover rounded-md"><div class="mt-4 text-center"><h3 class="text-xl font-semibold text-neutral-800">Terça do Smash em Dobro</h3><p class="text-neutral-600">Compre 1 Smash Clássico e Leve Outro!</p><button onclick="showSection('promocoes-section', document.querySelector('nav a[onclick*=\'promocoes-section\']'))" class="mt-2 bg-primary hover:bg-primary-hover text-white font-semibold py-2 px-4 rounded-md transition duration-300">Aproveitar Agora!</button></div></div>
+                    <button id="prevBtn" class="absolute top-1/2 left-2 transform -translate-y-1/2 bg-neutral-800 text-white p-2 rounded-full hover:bg-neutral-700 opacity-75 hover:opacity-100">❮</button>
+                    <button id="nextBtn" class="absolute top-1/2 right-2 transform -translate-y-1/2 bg-neutral-800 text-white p-2 rounded-full hover:bg-neutral-700 opacity-75 hover:opacity-100">❯</button>
+                </div>
+                 <p class="text-center mt-6"><a href="#" onclick="showSection('promocoes-section', document.querySelector('nav a[onclick*=\'promocoes-section\']'))" class="text-primary hover:text-orange-700 font-semibold underline">Ver todas as promoções</a></p>
+            </div>
+            <div class="my-16 p-4 sm:p-6 bg-white rounded-xl shadow-xl">
+                <h2 class="text-3xl font-bold text-center text-neutral-900 mb-2">📊 Nossos Queridinhos 📊</h2>
+                <p class="text-center text-neutral-600 mb-8">Confira os itens mais pedidos pela galera. Qual o seu favorito?</p>
+                <div class="chart-container">
+                    <canvas id="maisPedidosChart"></canvas>
+                </div>
+            </div>
+            <div class="my-16" id="home-diferenciais-container">
+                <h2 class="text-3xl font-bold text-center text-neutral-900 mb-2">Aqui o Bacon Canta Mais Alto!</h2><p class="text-center text-neutral-600 mb-10">Descubra por que a Weyn's Burger é a sua melhor escolha para matar a fome com sabor de verdade.</p><div class="grid md:grid-cols-3 gap-8"><div class="bg-white p-6 rounded-xl shadow-lg text-center transform transition duration-300 hover:scale-105"><div class="text-5xl mb-4">🍔</div><h3 class="text-xl font-semibold text-neutral-800 mb-2">Smash na Medida Certa</h3><p class="text-neutral-600">Nossos burgers são smashados na chapa quente, garantindo aquela crostinha irresistível e suculência por dentro.</p></div><div class="bg-white p-6 rounded-xl shadow-lg text-center transform transition duration-300 hover:scale-105"><div class="text-5xl mb-4">🥓</div><h3 class="text-xl font-semibold text-neutral-800 mb-2">Bacon é Coisa Séria</h3><p class="text-neutral-600">Selecionamos o melhor bacon, sempre crocante e no ponto perfeito para te levar à vida.</p></div><div class="bg-white p-6 rounded-xl shadow-lg text-center transform transition duration-300 hover:scale-105"><div class="text-5xl mb-4">🌿</div><h3 class="text-xl font-semibold text-neutral-800 mb-2">Ingredientes de Primeira</h3><p class="text-neutral-600">Pão fresquinho, queijos selecionados e os molhos mais saborosos. Qualidade que você sente em cada mordida.</p></div></div><p class="text-center mt-8"><a href="#" onclick="showSection('sobre-section', document.querySelector('nav a[onclick*=\'sobre-section\']'))" class="text-primary hover:text-orange-700 font-semibold underline">Conheça nossa história</a></p>
+            </div>
+            <div class="my-16 py-12 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl shadow-xl text-center" id="home-clube-cta-container">
+                <h2 class="text-3xl font-bold mb-4">Faça Parte do Clube Weyn's!</h2><p class="text-lg mb-6 max-w-xl mx-auto">Quem é fã de carteirinha da Weyn's Burger merece mais! Acumule pontos, ganhe descontos, burgers na faixa e muito mais.</p><img src="https://placehold.co/150x150/FFFFFF/F97316?text=Clube+VIP" alt="[Imagem do Clube VIP Weyn's]" class="mx-auto mb-6 rounded-full shadow-md border-4 border-white"><button onclick="showSection('clube-section', document.querySelector('nav a[onclick*=\'clube-section\']'))" class="bg-white text-primary font-bold py-3 px-8 rounded-lg text-lg transition duration-300 hover:bg-amber-100 transform hover:scale-105">Quero Ser VIP!</button>
+            </div>
+        </section>
+
+        <section id="cardapio-section" class="content-section">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl sm:text-5xl font-bold text-neutral-900 mb-4">Nosso Cardápio</h1>
+                <p class="text-lg text-neutral-600 max-w-2xl mx-auto">Uma viagem do bacon à vida! Explore nossas delícias e monte seu pedido. Cada item é preparado com ingredientes frescos e muito carinho.</p>
+            </div>
+            <div id="public-menu-container"></div>
+             <div id="checkout-visual-mockup" class="my-12 p-6 bg-white rounded-xl shadow-xl">
+                <h2 class="text-2xl font-bold text-neutral-900 mb-6 text-center">Finalizar Pedido (Visualização)</h2>
+                <div id="cart-summary" class="mb-6 border-b pb-4"></div>
+                <div id="gemini-suggestion-button-container" class="my-4 text-center" style="display: none;">
+                     <button id="suggest-accompaniments-btn" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">✨ Sugerir Acompanhamentos</button>
+                </div>
+                <form id="mock-checkout-form-container">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div><label for="nome" class="block text-sm font-medium text-neutral-700 mb-1">Nome Completo</label><input type="text" id="nome" name="nome" class="input-admin" placeholder="Seu Nome"></div><div><label for="telefone" class="block text-sm font-medium text-neutral-700 mb-1">Telefone / WhatsApp</label><input type="tel" id="telefone" name="telefone" class="input-admin" placeholder="(XX) XXXXX-XXXX"></div></div><div class="mb-6"><label for="endereco" class="block text-sm font-medium text-neutral-700 mb-1">Endereço de Entrega</label><input type="text" id="endereco" name="endereco" class="input-admin" placeholder="Rua, Número, Bairro, Cidade (ou deixe em branco para retirada)"></div><div class="mb-6"><label class="block text-sm font-medium text-neutral-700 mb-1">Forma de Pagamento</label><select id="pagamento" name="pagamento" class="input-admin"><option>Cartão de Crédito na Entrega</option><option>Cartão de Débito na Entrega</option><option>PIX na Entrega</option><option>Dinheiro</option></select></div><button type="button" onclick="handlePlaceOrder()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300">Confirmar Pedido (Mock)</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="promocoes-section" class="content-section">
+            </section>
+
+        <section id="clube-section" class="content-section">
+            </section>
+
+        <section id="sobre-section" class="content-section">
+            </section>
+
+        <section id="contato-section" class="content-section">
+            </section>
+
+        <section id="admin-login-section" class="content-section">
+            <div class="max-w-md mx-auto mt-10 bg-white p-8 rounded-xl shadow-xl">
+                <h1 class="text-3xl font-bold text-center text-neutral-900 mb-6">Acesso Restrito - Loja</h1>
+                <form id="admin-login-form">
+                    <div class="mb-4">
+                        <label for="admin-username" class="block text-sm font-medium text-neutral-700 mb-1">Usuário</label>
+                        <input type="text" id="admin-username" value="admin" class="input-admin">
+                    </div>
+                    <div class="mb-6">
+                        <label for="admin-password" class="block text-sm font-medium text-neutral-700 mb-1">Senha</label>
+                        <input type="password" id="admin-password" value="admin123" class="input-admin">
+                    </div>
+                    <button type="submit" class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300">Entrar</button>
+                    <p id="admin-login-error" class="text-red-500 text-sm mt-2 text-center"></p>
+                </form>
+            </div>
+        </section>
+        
+        <div id="developer-login-section-content-template" style="display: none;">
+            <div class="max-w-md mx-auto mt-10 bg-white p-8 rounded-xl shadow-xl">
+                <h1 class="text-3xl font-bold text-center text-neutral-900 mb-6">Acesso Desenvolvedor</h1>
+                 <p class="text-sm text-center text-neutral-500 mb-4">Esta área permite modificações avançadas. Use com cautela.</p>
+                <form id="developer-login-form-instance">
+                    <div class="mb-4">
+                        <label for="dev-username-form-instance" class="block text-sm font-medium text-neutral-700 mb-1">Usuário Dev</label>
+                        <input type="text" id="dev-username-form-instance" value="dev" class="input-admin">
+                    </div>
+                    <div class="mb-6">
+                        <label for="dev-password-form-instance" class="block text-sm font-medium text-neutral-700 mb-1">Senha Dev</label>
+                        <input type="password" id="dev-password-form-instance" value="devpass" class="input-admin">
+                    </div>
+                    <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300">Acessar Ferramentas Dev</button>
+                    <p id="developer-login-error-form-instance" class="text-red-500 text-sm mt-2 text-center"></p>
+                     <button type="button" onclick="showAdminSubSection('admin-dashboard-subsection', document.querySelector('#admin-nav a[onclick*=\'admin-dashboard-subsection\']'))" class="mt-4 w-full bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-3 rounded-lg">Voltar ao Painel</button>
+                </form>
+            </div>
+        </div>
+        
+        <div id="developer-tools-content-template" style="display:none;">
+            <h2 class="text-3xl font-bold text-neutral-800 mb-6">Opções de Desenvolvedor (Simulado)</h2>
+            <div class="mb-4 border-b border-neutral-300">
+                <nav id="developer-nav-instance" class="flex space-x-1 -mb-px">
+                    <a href="#" onclick="showDevSubSection('dev-appearance-subsection', this)" class="dev-nav-link py-3 px-4 text-sm font-medium text-neutral-600 hover:text-primary border-b-2 border-transparent active-link">Aparência</a>
+                    <a href="#" onclick="showDevSubSection('dev-content-subsection', this)" class="dev-nav-link py-3 px-4 text-sm font-medium text-neutral-600 hover:text-primary border-b-2 border-transparent">Conteúdo Estático</a>
+                    <a href="#" onclick="showDevSubSection('dev-general-subsection', this)" class="dev-nav-link py-3 px-4 text-sm font-medium text-neutral-600 hover:text-primary border-b-2 border-transparent">Geral</a>
+                    <a href="#" onclick="showDevSubSection('dev-rawdata-subsection', this)" class="dev-nav-link py-3 px-4 text-sm font-medium text-neutral-600 hover:text-primary border-b-2 border-transparent">Dados Brutos</a>
+                </nav>
+            </div>
+            <div id="dev-appearance-subsection" class="dev-subsection active space-y-6">
+                <h3 class="text-xl font-semibold text-neutral-700">Customizar Aparência</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label for="dev-primary-color" class="block text-sm font-medium">Cor Primária</label><input type="color" id="dev-primary-color" value="#f97316" class="mt-1 block w-full h-10 input-admin"></div>
+                    <div><label for="dev-background-color" class="block text-sm font-medium">Cor de Fundo</label><input type="color" id="dev-background-color" value="#fef3c7" class="mt-1 block w-full h-10 input-admin"></div>
+                </div>
+                <div><label for="dev-font-family" class="block text-sm font-medium">Fonte Principal</label><select id="dev-font-family" class="mt-1 block w-full p-2 input-admin"><option value="'Inter', sans-serif">Inter</option><option value="'Roboto', sans-serif">Roboto</option><option value="'Open Sans', sans-serif">Open Sans</option><option value="'Lato', sans-serif">Lato</option></select></div>
+                <button onclick="applyDevAppearance()" class="btn-admin-action">Aplicar Aparência</button>
+            </div>
+            <div id="dev-content-subsection" class="dev-subsection space-y-6">
+                <h3 class="text-xl font-semibold">Editar Conteúdo Estático</h3>
+                <div><label for="dev-sobre-nos-content" class="block text-sm font-medium">"Sobre Nós"</label><textarea id="dev-sobre-nos-content" rows="8" class="input-admin"></textarea></div>
+                <div><label for="dev-clube-weyns-content" class="block text-sm font-medium">"Clube Weyn's"</label><textarea id="dev-clube-weyns-content" rows="4" class="input-admin"></textarea></div>
+                <button onclick="applyDevStaticContent()" class="btn-admin-action">Salvar Conteúdo</button>
+            </div>
+            <div id="dev-general-subsection" class="dev-subsection space-y-6">
+                <h3 class="text-xl font-semibold">Configurações Gerais</h3>
+                <div><label for="dev-site-title" class="block text-sm font-medium">Título do Site</label><input type="text" id="dev-site-title" class="input-admin"></div>
+                <div class="flex items-center"><input type="checkbox" id="dev-toggle-gemini-suggestions" class="input-admin-check text-primary"><label for="dev-toggle-gemini-suggestions" class="ml-2 block text-sm">Ativar Sugestões Gemini</label></div>
+                <button onclick="applyDevGeneralSettings()" class="btn-admin-action">Aplicar Configurações</button>
+            </div>
+            <div id="dev-rawdata-subsection" class="dev-subsection space-y-6">
+                <h3 class="text-xl font-semibold">Dados Brutos (JSON) - AVANÇADO</h3>
+                <p class="text-sm text-red-600">⚠️ Cuidado: Editar estes dados incorretamente pode quebrar partes do site.</p>
+                <div><label for="dev-menu-data-json" class="block text-sm font-medium">Cardápio (menuData)</label><textarea id="dev-menu-data-json" rows="10" class="input-admin font-mono text-xs"></textarea></div>
+                <div><label for="dev-orders-data-json" class="block text-sm font-medium">Pedidos (incomingOrders)</label><textarea id="dev-orders-data-json" rows="10" class="input-admin font-mono text-xs"></textarea></div>
+                <button onclick="applyDevRawData()" class="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg">Aplicar Dados</button>
+            </div>
+            <hr class="my-8">
+            <button onclick="resetDeveloperSettingsToDefault()" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg">Redefinir Config. Dev</button>
+        </div>
+
+
+        <section id="admin-panel-section" class="content-section">
+            <div class="flex flex-col md:flex-row gap-6">
+                <aside id="admin-sidebar" class="md:w-1/4 bg-neutral-800 p-4 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold text-orange-400 mb-2 text-center">Painel Loja</h2>
+                    <button onclick="enterCustomerViewMode()" class="w-full mb-4 bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold py-2 px-3 rounded-lg transition duration-300">👁️ Ver Site como Cliente</button>
+                    <nav id="admin-nav" class="space-y-2">
+                        <a href="#" onclick="showAdminSubSection('admin-dashboard-subsection', this)" class="admin-nav-link text-amber-100 active-link">📊 Dashboard</a>
+                        <a href="#" onclick="showAdminSubSection('admin-orders-subsection', this)" class="admin-nav-link text-amber-100">📋 Pedidos</a>
+                        <a href="#" onclick="showAdminSubSection('admin-menu-subsection', this)" class="admin-nav-link text-amber-100">🍔 Cardápio</a>
+                        <a href="#" onclick="showAdminSubSection('admin-customers-subsection', this)" class="admin-nav-link text-amber-100">👥 Clientes</a>
+                        <a href="#" onclick="showAdminSubSection('admin-reports-subsection', this)" class="admin-nav-link text-amber-100">📈 Relatórios</a>
+                        <a href="#" onclick="showAdminSubSection('admin-settings-subsection', this)" class="admin-nav-link text-amber-100">⚙️ Configurações</a>
+                        <a href="#" onclick="handleDeveloperTabClick(this)" class="admin-nav-link text-amber-100">🧑‍💻 Desenvolvedor</a>
+                    </nav>
+                    <button onclick="adminLogout()" class="mt-8 w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">Sair do Painel</button>
+                </aside>
+
+                <main class="md:w-3/4 space-y-6">
+                    <div id="admin-dashboard-subsection" class="admin-main-subsection active bg-white p-6 rounded-xl shadow-xl">
+                        </div>
+
+                    <div id="admin-orders-subsection" class="admin-main-subsection bg-white p-6 rounded-xl shadow-xl">
+                        </div>
+
+                    <div id="admin-menu-subsection" class="admin-main-subsection bg-white p-6 rounded-xl shadow-xl">
+                        </div>
+
+                    <div id="admin-customers-subsection" class="admin-main-subsection bg-white p-6 rounded-xl shadow-xl">
+                        </div>
+                    
+                    <div id="admin-reports-subsection" class="admin-main-subsection bg-white p-6 rounded-xl shadow-xl">
+                        </div>
+
+                    <div id="admin-settings-subsection" class="admin-main-subsection bg-white p-6 rounded-xl shadow-xl">
+                        </div>
+                    
+                    <div id="admin-developer-subsection" class="admin-main-subsection bg-white p-6 rounded-xl shadow-xl">
+                        </div>
+
+                </main>
+            </div>
+        </section>
+        
+        <div id="printable-content" class="hidden"></div>
+        <button id="return-to-admin-btn" onclick="exitCustomerViewMode()" class="bg-primary hover:bg-primary-hover text-white font-bold py-2 px-4 rounded-lg shadow-lg" style="display: none;">Voltar ao Painel Admin</button>
+    </main>
+
+    <footer class="bg-header text-header mt-16 py-12 no-print">
+        </footer>
+    
+    <div id="toast-notification" class="fixed bottom-5 right-5 bg-green-500 text-white py-3 px-5 rounded-lg shadow-lg hidden transition-opacity duration-300 z-[101]">
+        </div>
+
+    <div id="geminiModal" class="modal">
+        </div>
+    
+    <div id="orderDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeOrderDetailsModal()">×</span>
+            <h3 class="text-2xl font-bold text-neutral-800 mb-4">Detalhes do Pedido</h3>
+            <div id="orderDetailsModalBody" class="text-neutral-700 leading-relaxed"></div>
+            <div class="mt-6 text-right">
+                <button onclick="printCurrentOrderDetails()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg mr-2">Imprimir</button>
+                <button onclick="closeOrderDetailsModal()" class="bg-primary hover:bg-primary-hover text-white font-semibold py-2 px-4 rounded-lg">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+    // Global state and initial data (can be modified by dev mode)
+    let siteGlobalSettings = {
+        primaryColor: '#f97316',
+        backgroundColor: '#fef3c7',
+        fontFamily: "'Inter', sans-serif",
+        siteTitle: "Weyn's Burger - DE BACON À VIDA!",
+        geminiSuggestionsEnabled: true,
+        sobreNosContent: `
+            <div class="text-center mb-12">
+                <h1 class="text-4xl sm:text-5xl font-bold text-neutral-900 mb-4">Nossa História</h1>
+                <p class="text-lg text-neutral-600 max-w-2xl mx-auto">Do sonho ao sabor que te leva do bacon à vida. Conheça a paixão que move a Weyn's Burger.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-xl p-6 md:p-10 mb-10">
+                <img src="https://placehold.co/1000x400/F97316/FFFFFF?text=Equipe+Weyn's+Burger+Apaixonada" alt="[Imagem da Equipe Weyn's Burger]" class="w-full h-auto max-h-96 object-cover rounded-lg shadow-md mb-8">
+                <p class="text-neutral-700 text-lg leading-relaxed mb-6">A Weyn's Burger nasceu de uma paixão ardente: criar hambúrgueres que não apenas alimentam, mas que proporcionam uma experiência inesquecível. Acreditamos que cada mordida pode ser uma pequena celebração, um momento de puro prazer.</p>
+                <h2 class="text-2xl font-semibold text-neutral-800 mb-3">A Origem</h2>
+                <p class="text-neutral-700 leading-relaxed mb-6">Tudo começou na cozinha de casa, entre amigos e família, com a busca incessante pelo hambúrguer perfeito. O hobby virou paixão, a paixão virou um sonho, e o sonho se tornou a Weyn's Burger. Queríamos compartilhar esse sabor único, essa dedicação em cada detalhe, com mais pessoas. E assim, o aroma do nosso bacon começou a conquistar a cidade!</p>
+                <h2 class="text-2xl font-semibold text-neutral-800 mb-3">A Filosofia "DE BACON À VIDA"</h2>
+                <p class="text-neutral-700 leading-relaxed mb-6">Para nós, "DE BACON À VIDA" é mais que um slogan. É a nossa promessa de usar os melhores ingredientes, com destaque para o bacon – esse ícone de sabor e indulgência – para transformar uma simples refeição num momento de felicidade e satisfação plena. É sobre viver a vida com mais sabor, apreciar os pequenos prazeres e compartilhar momentos deliciosos.</p>
+                <h2 class="text-2xl font-semibold text-neutral-800 mb-3">Nossos Diferenciais e Valores</h2>
+                <div class="space-y-4 text-neutral-700 leading-relaxed"><p><strong>Qualidade Inegociável:</strong> Selecionamos cada ingrediente com o máximo rigor. Carnes frescas 100% bovinas, pães artesanais feitos diariamente, vegetais crocantes de produtores locais e, claro, o bacon perfeito, defumado na medida certa.</p><p><strong>Preparo com Paixão:</strong> Cada hambúrguer é montado com cuidado e carinho, como se fosse para nós mesmos. Nossa chapa está sempre no ponto, garantindo o smash perfeito e o selamento ideal do pão.</p><p><strong>Inovação Constante:</strong> Amamos o clássico, mas estamos sempre buscando novas combinações e sabores para surpreender seu paladar. Fique de olho em nossos burgers sazonais e edições limitadas!</p></div>
+                 <p class="mt-8 text-center text-xl font-semibold text-primary">Venha fazer parte da família Weyn's Burger e descubra por que somos irresistíveis!</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-6"><img src="https://placehold.co/600x400/F59E0B/FFFFFF?text=Ingredientes+Frescos" alt="[Imagem de Ingredientes Frescos Weyn's]" class="w-full h-64 object-cover rounded-lg shadow-md"><img src="https://placehold.co/600x400/D97706/FFFFFF?text=Preparo+Artesanal" alt="[Imagem de Preparo Artesanal Weyn's]" class="w-full h-64 object-cover rounded-lg shadow-md"></div>`,
+        clubeWeynsContent: `
+            <div class="text-center mb-12"><h1 class="text-4xl sm:text-5xl font-bold text-neutral-900 mb-4">Clube Weyn's</h1><p class="text-lg text-neutral-600 max-w-2xl mx-auto">Bem-vindo ao clube onde ser fiel vale ouro (e bacon)! No Clube Weyn's, sua paixão por nossos burgers vira recompensa.</p></div>
+            <div class="bg-white rounded-xl shadow-xl p-6 md:p-10 mb-10"><div class="flex flex-col md:flex-row items-center md:space-x-8"><img src="https://placehold.co/250x250/F97316/FFFFFF?text=Clube+Weyn's+VIP" alt="[Imagem do Clube Weyn's VIP]" class="w-40 h-40 md:w-52 md:h-52 rounded-full object-cover mb-6 md:mb-0 border-4 border-orange-300 shadow-md"><div><h2 class="text-3xl font-bold text-neutral-800 mb-3">Vantagens Exclusivas Para Você!</h2><p class="text-neutral-700 mb-4">Quanto mais você saboreia, mais vantagens exclusivas você ganha. É nosso jeito de dizer obrigado por fazer parte da família Weyn's Burger!</p><ul class="list-disc list-inside space-y-2 text-neutral-600 mb-6"><li>Desconto de boas-vindas ao se cadastrar.</li><li>Burger grátis no seu aniversário.</li><li>Acesso antecipado a novos lançamentos e promoções secretas.</li><li>Acumule pontos e troque por produtos ou descontos.</li><li>Ofertas personalizadas só para membros.</li></ul></div></div></div>
+            <div class="grid md:grid-cols-3 gap-6 mb-10 text-center"><div class="bg-amber-100 p-6 rounded-lg shadow"><h3 class="text-xl font-semibold text-primary mb-2">Passo 1: Cadastre-se Grátis</h3><p class="text-neutral-700 text-sm">Rápido e fácil, comece a acumular pontos hoje mesmo!</p></div><div class="bg-amber-100 p-6 rounded-lg shadow"><h3 class="text-xl font-semibold text-primary mb-2">Passo 2: Peça e Pontue</h3><p class="text-neutral-700 text-sm">Cada real gasto nos seus pedidos Weyn's vira pontos no clube.</p></div><div class="bg-amber-100 p-6 rounded-lg shadow"><h3 class="text-xl font-semibold text-primary mb-2">Passo 3: Troque por Recompensas</h3><p class="text-neutral-700 text-sm">Use seus pontos para resgatar burgers, porções, descontos e surpresas!</p></div></div>
+            <div class="bg-white rounded-xl shadow-xl p-6 md:p-8"><h3 class="text-2xl font-bold text-neutral-800 mb-6 text-center">Junte-se ao Clube! (Simulação)</h3><form id="clube-form"><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4"><div><label for="clube-nome" class="block text-sm font-medium text-neutral-700 mb-1">Nome Completo</label><input type="text" id="clube-nome" class="input-admin" placeholder="Seu nome"></div><div><label for="clube-email" class="block text-sm font-medium text-neutral-700 mb-1">E-mail</label><input type="email" id="clube-email" class="input-admin" placeholder="seu@email.com"></div></div><div class="mb-6"><label for="clube-nascimento" class="block text-sm font-medium text-neutral-700 mb-1">Data de Nascimento</label><input type="date" id="clube-nascimento" class="input-admin"></div><div class="flex items-center mb-6"><input id="clube-termos" type="checkbox" class="input-admin-check text-primary"><label for="clube-termos" class="ml-2 block text-sm text-neutral-700">Eu aceito os <a href="#" class="text-primary hover:underline">termos e condições</a> do Clube Weyn's.</label></div><button type="button" onclick="alert('Cadastro no Clube Weyn\\'s realizado com sucesso! (Simulação)')" class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300">Quero Fazer Parte!</button></form><p class="text-center mt-4 text-sm text-neutral-600">Já é membro? <a href="#" onclick="alert('Login para área de membros (Simulação)')" class="text-primary hover:underline font-semibold">Acesse sua conta aqui.</a></p></div>`,
+        promocoesContent: `
+            <div class="text-center mb-12"><h1 class="text-4xl sm:text-5xl font-bold text-neutral-900 mb-4">Promoções Weyn's</h1><p class="text-lg text-neutral-600 max-w-2xl mx-auto">Seu burger favorito com descontos de outro mundo! Aproveite nossas ofertas especiais e combos pensados para você.</p></div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"><div class="bg-white rounded-xl shadow-lg p-6 transform transition duration-300 hover:shadow-2xl hover:scale-105"><img src="https://placehold.co/600x350/FFC107/000000?text=Combo+Duplo+Weyn's" alt="[Imagem do Combo Duplo Weyn's]" class="w-full h-48 object-cover rounded-md mb-4"><h2 class="text-2xl font-bold text-neutral-800 mb-2">Combo Duplo Weyn's</h2><p class="text-neutral-600 mb-3">2 Weyn's Burgers Clássicos + 1 Porção de Batatas Grandes + 2 Refrigerantes Lata.</p><p class="text-xl font-semibold text-primary mb-4">R$ 59,90 <span class="text-sm text-neutral-500 line-through">R$ 70,00</span></p><button class="w-full bg-primary hover:bg-primary-hover text-white font-semibold py-2 px-4 rounded-lg transition duration-300" onclick="alert('Adicionado ao carrinho (simulação)')">Aproveitar Oferta</button></div><div class="bg-white rounded-xl shadow-lg p-6 transform transition duration-300 hover:shadow-2xl hover:scale-105"><img src="https://placehold.co/600x350/4CAF50/FFFFFF?text=Terça+do+Smash" alt="[Imagem da Terça do Smash]" class="w-full h-48 object-cover rounded-md mb-4"><h2 class="text-2xl font-bold text-neutral-800 mb-2">Terça do Smash em Dobro</h2><p class="text-neutral-600 mb-3">Toda terça-feira, compre um Smash Burger Clássico e o segundo sai com 50% de desconto!</p><p class="text-neutral-600 mb-4">Válido às terças. Consulte condições.</p><button class="w-full bg-primary hover:bg-primary-hover text-white font-semibold py-2 px-4 rounded-lg transition duration-300" onclick="alert('Adicionado ao carrinho (simulação)')">Aproveitar Oferta</button></div><div class="bg-white rounded-xl shadow-lg p-6 transform transition duration-300 hover:shadow-2xl hover:scale-105"><img src="https://placehold.co/600x350/2196F3/FFFFFF?text=Cupom+PRIMEIRACOMPRA" alt="[Imagem do Cupom Primeira Compra]" class="w-full h-48 object-cover rounded-md mb-4"><h2 class="text-2xl font-bold text-neutral-800 mb-2">15% OFF na Primeira Compra</h2><p class="text-neutral-600 mb-3">Use o cupom <strong class="text-primary">WEYNS15</strong> no seu primeiro pedido online e ganhe 15% de desconto.</p><p class="text-xl font-semibold text-primary mb-4">Cupom: WEYNS15</p><button class="w-full bg-primary hover:bg-primary-hover text-white font-semibold py-2 px-4 rounded-lg transition duration-300" onclick="alert('Cupom copiado (simulação)')">Copiar Cupom</button></div></div>
+             <div class="mt-12 p-6 bg-amber-100 rounded-xl shadow text-center"><h3 class="text-xl font-semibold text-neutral-800 mb-2">Como Usar seu Cupom?</h3><p class="text-neutral-700">É simples! Ao finalizar seu pedido no carrinho, procure o campo "Código do Cupom", insira seu código e clique em aplicar. O desconto será calculado automaticamente.</p></div>`
+    };
+    const defaultSiteGlobalSettings = JSON.parse(JSON.stringify(siteGlobalSettings)); 
+
+    let menuData = [
+        {
+            categoryName: "Hambúrgueres da Casa",
+            items: [
+                { id: 'burger1', name: "Weyn's Bacon Supreme", description: "Dois suculentos smash burgers artesanais, queijo cheddar derretido abraçando cada camada, fatias generosas de bacon extra crocante que estalam na boca, tudo isso num pão brioche selado na manteiga.", price: 35.90, ingredients: "smash burger duplo, queijo cheddar, bacon extra crocante, pão brioche", imageSrc: "https://placehold.co/600x400/F97316/FFFFFF?text=Weyn's+Bacon+Supreme", category: "hamburguer", stock: 15, isFeatured: "Novidade", isVisible: true },
+                { id: 'burger2', name: "Smash Clássico", description: "A perfeição em forma de smash: carne suculenta com aquela crostinha dourada, queijo americano derretido, picles, cebola roxa e nosso molho especial no pão de batata.", price: 28.50, ingredients: "smash burger, queijo americano, picles, cebola roxa, molho especial, pão de batata", imageSrc: "https://placehold.co/600x400/F59E0B/FFFFFF?text=Smash+Clássico", category: "hamburguer", stock: 25, isFeatured: "Mais Vendido", isVisible: true },
+                { id: 'burger3', name: "Chicken Crispy", description: "Peito de frango empanado super crocante, alface americana fresca, tomate, maionese de ervas finas no pão brioche. Leve e delicioso!", price: 30.00, ingredients: "peito de frango empanado crocante, alface americana, tomate, maionese de ervas finas, pão brioche", imageSrc: "https://placehold.co/600x400/D97706/FFFFFF?text=Chicken+Crispy", category: "hamburguer", stock: 5, isFeatured: "", isVisible: true }
+            ]
+        },
+        {
+            categoryName: "Porções Crocantes",
+            items: [
+                { id: 'porcao1', name: "Batatas Weyn's", description: "Nossas famosas batatas fritas sequinhas e crocantes, temperadas com páprica defumada e alecrim. Acompanha molho da casa.", price: 18.00, ingredients: "batata, páprica, alecrim", imageSrc: "https://placehold.co/600x400/B45309/FFFFFF?text=Batatas+Weyn's", category: "porcao", stock: 50, isFeatured: "", isVisible: true },
+                { id: 'porcao2', name: "Onion Rings Douradas", description: "Anéis de cebola empanados na cerveja, fritos até a perfeição dourada. Crocantes por fora, macios por dentro. Acompanha molho barbecue artesanal.", price: 22.00, ingredients: "cebola, empanamento de cerveja", imageSrc: "https://placehold.co/600x400/92400E/FFFFFF?text=Onion+Rings", category: "porcao", stock: 3, isFeatured: "", isVisible: true }
+            ]
+        },
+        {
+            categoryName: "Bebidas",
+            items: [
+                { id: 'bebida1', name: "Refrigerante Lata", description: "Escolha seu sabor preferido: Coca-Cola, Guaraná, Fanta.", price: 5.00, ingredients: "", imageSrc: "https://placehold.co/600x400/2563EB/FFFFFF?text=Refrigerante", category: "bebida", stock: 100, isFeatured: "", isVisible: true },
+                { id: 'bebida2', name: "Suco Natural de Laranja", description: "Feito na hora com laranjas frescas.", price: 8.00, ingredients: "laranja", imageSrc: "https://placehold.co/600x400/F59E0B/FFFFFF?text=Suco+Laranja", category: "bebida", stock: 30, isFeatured: "", isVisible: true }
+            ]
+        }
+    ];
+    const defaultMenuData = JSON.parse(JSON.stringify(menuData));
+
+    let incomingOrders = [
+        { orderId: 'WEYN001', customerName: 'Carlos Silva', customerContact: '(27) 99999-0001', customerAddress: 'Rua das Palmeiras, 10, Bairro Sol', items: [{name: "Weyn's Bacon Supreme", quantity: 1, price: 35.90}, {name: "Batatas Weyn's", quantity:1, price: 18.00}], total: 53.90, timestamp: new Date(Date.now() - 3600000).toLocaleString('pt-BR'), status: 'Novo', paymentMethod: 'Cartão de Crédito' },
+        { orderId: 'WEYN002', customerName: 'Ana Pereira', customerContact: '(27) 98888-0002', customerAddress: 'Av. Central, 202, Apto 3, Centro', items: [{name: "Smash Clássico", quantity: 2, price: 28.50}], total: 57.00, timestamp: new Date(Date.now() - 7200000).toLocaleString('pt-BR'), status: 'Em Preparo', paymentMethod: 'PIX' },
+        { orderId: 'WEYN003', customerName: 'Lucas Mendes', customerContact: '(27) 97777-0003', customerAddress: 'Alameda dos Sabores, 30, Praia da Costa', items: [{name: "Chicken Crispy", quantity: 1, price: 30.00}, {name: "Onion Rings Douradas", quantity:1, price: 22.00}, {name: "Refrigerante Lata", quantity:2, price: 5.00}], total: 62.00, timestamp: new Date(Date.now() - 10800000).toLocaleString('pt-BR'), status: 'Entregue', paymentMethod: 'Dinheiro' }
+    ];
+    const defaultIncomingOrders = JSON.parse(JSON.stringify(incomingOrders));
+
+
+    const sections = document.querySelectorAll('.content-section');
+    const mainNavLinks = document.querySelectorAll('header nav a.nav-link, header #mobile-menu a.nav-link');
+    const adminNavLinks = document.querySelectorAll('#admin-nav a.admin-nav-link');
+    
+    let isAdminLoggedIn = false;
+    let isDeveloperLoggedIn = false; 
+    let currentOrderToPrint = null;
+    let isCustomerViewMode = false;
+
+
+    function updateDynamicStyles() { /* ... same as before ... */ }
+    function isColorDark(colorString) { /* ... same as before ... */ }
+    function lightenDarkenColor(col, amt) { /* ... same as before ... */ }
+    function setActiveNavLink(clickedLink, isMobile = false) { /* ... same as before ... */ }
+
+
+    function showSection(sectionId, clickedLink) {
+        if (sectionId === 'admin-panel-section' && !isAdminLoggedIn) {
+            showSection('admin-login-section', document.querySelector('header nav a.nav-link[onclick*="admin-login-section"]'));
+            return;
+        }
+        
+        sections.forEach(section => {
+            section.classList.toggle('active', section.id === sectionId);
+        });
+        
+        if (clickedLink && !clickedLink.classList.contains('admin-nav-link') && !clickedLink.classList.contains('dev-nav-link')) { 
+           setActiveNavLink(clickedLink, clickedLink.closest('#mobile-menu') !== null);
+        }
+        
+        if (sectionId === 'admin-panel-section') {
+            const activeAdminSub = document.querySelector('.admin-main-subsection.active');
+            if (!activeAdminSub || activeAdminSub.id !== 'admin-developer-subsection' || (clickedLink && clickedLink.getAttribute('onclick').includes('admin-dashboard-subsection'))) {
+                 showAdminSubSection('admin-dashboard-subsection', document.querySelector('#admin-nav a[onclick*="admin-dashboard-subsection"]'));
+            }
+            updateDashboardData();
+            document.getElementById('admin-sidebar').style.display = 'block';
+            document.getElementById('return-to-admin-btn').style.display = 'none';
+            isCustomerViewMode = false;
+        } else if (sectionId !== 'admin-login-section' && sectionId !== 'developer-login-section-template' && !isCustomerViewMode) { 
+            const adminSidebar = document.getElementById('admin-sidebar');
+            if (adminSidebar) adminSidebar.style.display = 'none'; 
+        }
+        window.scrollTo(0, 0);
+    }
+
+    function enterCustomerViewMode() { /* ... same as before ... */ }
+    function exitCustomerViewMode() { /* ... same as before ... */ }
+
+
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuButton.addEventListener('click', toggleMobileMenu);
+    function toggleMobileMenu() { mobileMenu.classList.toggle('hidden'); }
+            
+    const adminLoginForm = document.getElementById('admin-login-form');
+    const adminLoginError = document.getElementById('admin-login-error');
+
+    if(adminLoginForm) { /* ... same as before ... */ }
+
+    function adminLogout() { /* ... same as before ... */ }
+    
+    function handleDeveloperTabClick(clickedLink) {
+        const devSubSectionContainer = document.getElementById('admin-developer-subsection');
+        if (!isDeveloperLoggedIn) {
+            devSubSectionContainer.innerHTML = document.getElementById('developer-login-section-content-template').innerHTML;
+            const devLoginFormInstance = devSubSectionContainer.querySelector('#developer-login-form-instance');
+            if (devLoginFormInstance) {
+                 devLoginFormInstance.addEventListener('submit', handleDeveloperLogin);
+            }
+        } else {
+            if (!devSubSectionContainer.querySelector('#developer-nav-instance')) { 
+                loadDeveloperToolsContent(devSubSectionContainer);
+            }
+            // Default to appearance or last active dev tab if possible
+            const activeDevSub = devSubSectionContainer.querySelector('.dev-subsection.active');
+            if(!activeDevSub){
+                showDevSubSection('dev-appearance-subsection', devSubSectionContainer.querySelector('#developer-nav-instance a[onclick*="dev-appearance-subsection"]'));
+            }
+            loadDeveloperSettings(); 
+        }
+        document.querySelectorAll('.admin-main-subsection').forEach(sub => sub.classList.remove('active'));
+        devSubSectionContainer.classList.add('active');
+
+        adminNavLinks.forEach(link => link.classList.remove('active-link'));
+        if (clickedLink) clickedLink.classList.add('active-link');
+    }
+
+
+    function handleDeveloperLogin(e) {
+        e.preventDefault();
+        const devSubSectionContainer = document.getElementById('admin-developer-subsection');
+        const usernameInput = devSubSectionContainer.querySelector('#dev-username-form-instance');
+        const passwordInput = devSubSectionContainer.querySelector('#dev-password-form-instance');
+        const errorMsgEl = devSubSectionContainer.querySelector('#developer-login-error-form-instance');
+
+        const username = usernameInput ? usernameInput.value : '';
+        const password = passwordInput ? passwordInput.value : '';
+
+
+        if (username === 'dev' && password === 'devpass') {
+            isDeveloperLoggedIn = true;
+            if(errorMsgEl) errorMsgEl.textContent = '';
+            loadDeveloperToolsContent(devSubSectionContainer);
+            const firstDevNavLink = devSubSectionContainer.querySelector('#developer-nav-instance a');
+             if (firstDevNavLink) {
+                showDevSubSection(firstDevNavLink.getAttribute('onclick').match(/'([^']*)'/)[1], firstDevNavLink);
+             }
+            loadDeveloperSettings();
+        } else {
+            isDeveloperLoggedIn = false;
+            if(errorMsgEl) errorMsgEl.textContent = 'Usuário ou senha de desenvolvedor inválidos.';
+        }
+    }
+    
+    function loadDeveloperToolsContent(container) {
+        container.innerHTML = document.getElementById('developer-tools-content-template').innerHTML;
+        
+        container.querySelectorAll('#developer-nav-instance a.dev-nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetSubSection = this.getAttribute('onclick').match(/'([^']*)'/)[1];
+                showDevSubSection(targetSubSection, this);
+            });
+        });
+        
+        const devAppearanceBtn = container.querySelector('button[onclick="applyDevAppearance()"]');
+        if(devAppearanceBtn) devAppearanceBtn.addEventListener('click', applyDevAppearance);
+        
+        const devStaticContentBtn = container.querySelector('button[onclick="applyDevStaticContent()"]');
+        if(devStaticContentBtn) devStaticContentBtn.addEventListener('click', applyDevStaticContent);
+
+        const devGeneralSettingsBtn = container.querySelector('button[onclick="applyDevGeneralSettings()"]');
+        if(devGeneralSettingsBtn) devGeneralSettingsBtn.addEventListener('click', applyDevGeneralSettings);
+        
+        const devRawDataBtn = container.querySelector('button[onclick="applyDevRawData()"]');
+        if(devRawDataBtn) devRawDataBtn.addEventListener('click', applyDevRawData);
+        
+        const resetDevBtn = container.querySelector('button[onclick="resetDeveloperSettingsToDefault()"]');
+        if(resetDevBtn) resetDevBtn.addEventListener('click', resetDeveloperSettingsToDefault);
+
+        loadDeveloperSettings(); 
+    }
+
+
+    function showAdminSubSection(subSectionId, clickedLink) {
+        if (subSectionId === 'admin-developer-subsection') {
+            handleDeveloperTabClick(clickedLink); 
+            return;
+        }
+
+        document.querySelectorAll('.admin-main-subsection').forEach(sub => {
+            sub.classList.toggle('active', sub.id === subSectionId);
+        });
+        adminNavLinks.forEach(link => link.classList.remove('active-link'));
+        if (clickedLink) {
+            clickedLink.classList.add('active-link');
+        }
+        if (subSectionId === 'admin-dashboard-subsection') updateDashboardData();
+        if (subSectionId === 'admin-orders-subsection') renderIncomingOrdersTable();
+        if (subSectionId === 'admin-menu-subsection') renderCurrentMenuItems();
+        if (subSectionId === 'admin-customers-subsection') renderAdminCustomersTable();
+        if (subSectionId === 'admin-reports-subsection') renderAdminReportsCharts();
+    }
+    
+    function showDevSubSection(subSectionId, clickedLink) {
+        const devSectionContainer = document.getElementById('admin-developer-subsection');
+        if (!devSectionContainer) return;
+
+        devSectionContainer.querySelectorAll('.dev-subsection').forEach(sub => {
+            sub.classList.toggle('active', sub.id === subSectionId);
+        });
+        devSectionContainer.querySelectorAll('#developer-nav-instance a.dev-nav-link').forEach(link => {
+            link.classList.remove('active-link');
+             link.style.color = 'var(--text-color-base)'; 
+             link.style.borderBottomColor = 'transparent';
+        });
+        if (clickedLink) {
+            clickedLink.classList.add('active-link');
+            clickedLink.style.color = 'var(--primary-color)'; 
+            clickedLink.style.borderBottomColor = 'var(--primary-color)';
+        }
+    }
+    function updateDashboardData() { /* ... same as before ... */ }
+    let recentSalesChartInstance, popularItemsChartInstance, dailySalesChartInstance, topProductsChartInstance;
+    function renderDashboardCharts() { /* ... same as before ... */ }
+    function renderAdminReportsCharts() { /* ... same as before ... */ }
+    const orderStatusFilter = document.getElementById('order-status-filter');
+    if(orderStatusFilter) orderStatusFilter.addEventListener('change', renderIncomingOrdersTable);
+    function renderIncomingOrdersTable() { /* ... same as before ... */ }
+    function getStatusColor(status) { /* ... same as before ... */ }
+    function updateOrderStatusTable(orderId, newStatus) { /* ... same as before ... */ }
+    const orderDetailsModal = document.getElementById('orderDetailsModal');
+    const orderDetailsModalBody = document.getElementById('orderDetailsModalBody');
+    function openOrderDetailsModal(orderId) { /* ... same as before ... */ }
+    function closeOrderDetailsModal() { orderDetailsModal.style.display = 'none'; currentOrderToPrint = null; }
+    function printCurrentOrderDetails() { /* ... same as before ... */ }
+
+    const publicMenuContainer = document.getElementById('public-menu-container');
+    const currentMenuItemsList = document.getElementById('current-menu-items-list');
+    let adminMenuFormEl; 
+    let menuFormTitleEl; 
+    let editItemIdInputEl; 
+
+    function initializeAdminMenuFormElements() {
+        const adminMenuSubSection = document.getElementById('admin-menu-subsection');
+        if (adminMenuSubSection) {
+            adminMenuFormEl = adminMenuSubSection.querySelector('form'); 
+            menuFormTitleEl = adminMenuSubSection.querySelector('h3[id*="menu-form-title"]'); 
+            editItemIdInputEl = adminMenuSubSection.querySelector('input[type="hidden"]'); 
+            
+            if(adminMenuFormEl) {
+                adminMenuFormEl.removeEventListener('submit', handleAdminMenuFormSubmit);
+                adminMenuFormEl.addEventListener('submit', handleAdminMenuFormSubmit);
+            }
+        }
+    }
+    function handleAdminMenuFormSubmit(e) { /* ... same as before ... */ }
+    function renderPublicMenu() { /* ... same as before ... */ }
+    function renderCurrentMenuItems() { /* ... same as before ... */ }
+    function resetMenuForm() { /* ... same as before ... */ }
+    function editMenuItem(itemId) { /* ... same as before ... */ }
+    function deleteMenuItem(itemId) { /* ... same as before ... */ }
+    function handlePlaceOrder() { /* ... same as before ... */ }
+    function renderAdminCustomersTable() { /* ... same as before ... */ }
+    function updateCartButtonsEventListeners() { /* ... same as before ... */ }
+    function handleAddToCartClick(event) { /* ... same as before ... */ }
+    function updateGenerateDescriptionEventListeners() { /* ... same as before ... */ }
+    async function handleGenerateDescriptionClick(event) { /* ... same as before ... */ }
+    const geminiModal = document.getElementById('geminiModal');
+    const geminiModalTitle = document.getElementById('geminiModalTitle');
+    const geminiModalBody = document.getElementById('geminiModalBody'); 
+    const geminiLoader = document.getElementById('geminiLoader');
+    const geminiResponseArea = document.getElementById('geminiResponseArea');
+    const restoreDescriptionBtn = document.getElementById('restoreDescriptionBtn');
+    let currentBurgerDescriptionElement = null; 
+    function openGeminiModal(title) { /* ... same as before ... */ }
+    function closeGeminiModal() { /* ... same as before ... */ }
+    window.onclick = function(event) { 
+        if (event.target == geminiModal) closeGeminiModal();
+        if (event.target == orderDetailsModal) closeOrderDetailsModal();
+    }
+    async function callGeminiAPI(promptText) { /* ... same as before ... */ }
+    const suggestAccompanimentsBtn = document.getElementById('suggest-accompaniments-btn');
+    if (suggestAccompanimentsBtn) { /* ... same as before ... */ }
+    function loadDeveloperSettings() { /* ... same as before ... */ }
+    function applyDevAppearance() { /* ... same as before ... */ }
+    function applyDevStaticContent() { /* ... same as before ... */ }
+    function applyDevGeneralSettings() { /* ... same as before ... */ }
+    function applyDevRawData() { /* ... same as before ... */ }
+    function resetDeveloperSettingsToDefault() { /* ... same as before ... */ }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        siteGlobalSettings = JSON.parse(JSON.stringify(defaultSiteGlobalSettings));
+        menuData = JSON.parse(JSON.stringify(defaultMenuData));
+        incomingOrders = JSON.parse(JSON.stringify(defaultIncomingOrders));
+        
+        fillStaticSection('home-section', `
+            <div class="text-center mb-12">
+                <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold text-neutral-900 mb-4">
+                    WEYN'S BURGER: <span class="text-primary">Irresistível.</span>
+                </h1>
+                <p class="text-xl sm:text-2xl text-neutral-700 font-semibold mb-6">DE BACON À VIDA!</p>
+                <p class="text-lg text-neutral-600 max-w-2xl mx-auto mb-8">
+                    A espera acabou. O sabor que vai te levar do bacon à vida está a um clique de distância. Prepare-se para uma experiência gastronômica que vai mudar seu conceito de hambúrguer!
+                </p>
+                <div class="space-y-4 sm:space-y-0 sm:space-x-4">
+                    <button onclick="showSection('cardapio-section', document.querySelector('nav a[onclick*=\\'cardapio-section\\']'))" class="bg-primary hover:bg-primary-hover text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 transform hover:scale-105">
+                        Ver Cardápio Completo
+                    </button>
+                    <button onclick="showSection('cardapio-section', document.querySelector('nav a[onclick*=\\'cardapio-section\\']'))" class="bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 transform hover:scale-105">
+                        Fazer Meu Pedido Agora!
+                    </button>
+                </div>
+            </div>
+            <div class="my-16 p-6 bg-white rounded-xl shadow-2xl">
+                <img src="https://placehold.co/1200x500/F97316/FFFFFF?text=Weyn's+Burger+Espetacular!" alt="[Imagem de Weyn's Burger Espetacular]" class="w-full h-auto object-cover rounded-lg shadow-md mb-6 max-h-[400px] sm:max-h-[500px]">
+                <p class="text-center text-neutral-600 text-md italic">A imagem acima é meramente ilustrativa, mas nosso sabor é real!</p>
+            </div>
+            <div class="my-16">
+                <h2 class="text-3xl font-bold text-center text-neutral-900 mb-2">🔥 Nossas Ofertas Que Vão Te Deixar de Queixo Caído! 🔥</h2>
+                <p class="text-center text-neutral-600 mb-8">Aproveite nossas promoções por tempo limitado. Sabor e economia andam juntos aqui!</p>
+                <div id="promotions-carousel-container" class="relative w-full max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-xl overflow-hidden">
+                    </div>
+                 <p class="text-center mt-6"><a href="#" onclick="showSection('promocoes-section', document.querySelector('nav a[onclick*=\\'promocoes-section\\']'))" class="text-primary hover:text-orange-700 font-semibold underline">Ver todas as promoções</a></p>
+            </div>
+            <div class="my-16 p-4 sm:p-6 bg-white rounded-xl shadow-xl">
+                <h2 class="text-3xl font-bold text-center text-neutral-900 mb-2">📊 Nossos Queridinhos 📊</h2>
+                <p class="text-center text-neutral-600 mb-8">Confira os itens mais pedidos pela galera. Qual o seu favorito?</p>
+                <div class="chart-container">
+                    <canvas id="maisPedidosChart"></canvas>
+                </div>
+            </div>
+            <div class="my-16" id="home-diferenciais-container">
+                </div>
+            <div class="my-16 py-12 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl shadow-xl text-center" id="home-clube-cta-container">
+                </div>
+        `);
+        fillStaticSection('cardapio-section', `
+            <div class="text-center mb-12">
+                <h1 class="text-4xl sm:text-5xl font-bold text-neutral-900 mb-4">Nosso Cardápio</h1>
+                <p class="text-lg text-neutral-600 max-w-2xl mx-auto">Uma viagem do bacon à vida! Explore nossas delícias e monte seu pedido. Cada item é preparado com ingredientes frescos e muito carinho.</p>
+            </div>
+            <div id="public-menu-container"></div>
+             <div id="checkout-visual-mockup" class="my-12 p-6 bg-white rounded-xl shadow-xl">
+                <h2 class="text-2xl font-bold text-neutral-900 mb-6 text-center">Finalizar Pedido (Visualização)</h2>
+                <div id="cart-summary" class="mb-6 border-b pb-4"></div>
+                <div id="gemini-suggestion-button-container" class="my-4 text-center" style="display: none;">
+                     <button id="suggest-accompaniments-btn" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">✨ Sugerir Acompanhamentos</button>
+                </div>
+                <form id="mock-checkout-form-container"></form>
+            </div>
+        `);
+        fillStaticSection('promocoes-section', siteGlobalSettings.promocoesContent);
+        fillStaticSection('clube-section', siteGlobalSettings.clubeWeynsContent);
+        fillStaticSection('sobre-section', siteGlobalSettings.sobreNosContent);
+        fillStaticSection('contato-section', `
+            <div class="text-center mb-12">
+                <h1 class="text-4xl sm:text-5xl font-bold text-neutral-900 mb-4">Fale Conosco</h1>
+                <p class="text-lg text-neutral-600 max-w-2xl mx-auto">Tem alguma dúvida, sugestão ou só quer dizer um olá? Adoraríamos ouvir de você! Se preferir, venha nos visitar.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-10">
+                <div class="bg-white rounded-xl shadow-xl p-6 md:p-8">
+                    <h2 class="text-2xl font-bold text-neutral-800 mb-6">Nossos Contatos</h2>
+                    <div class="space-y-4 text-neutral-700">
+                        <p><strong>📞 Telefone:</strong> <a href="tel:+5527999999999" class="text-primary hover:underline">(27) 99999-9999</a></p>
+                        <p><strong>📱 WhatsApp:</strong> <a href="https://wa.me/5527999999999" target="_blank" class="text-primary hover:underline">(27) 99999-9999 (Clique para conversar)</a></p>
+                        <p><strong>📧 E-mail:</strong> <a href="mailto:contato@weynsburger.com.br" class="text-primary hover:underline">contato@weynsburger.com.br</a></p>
+                        <div><h3 class="text-lg font-semibold text-neutral-800 mt-4 mb-1">Horário de Funcionamento:</h3><p>Segunda a Quinta: 18:00 - 23:00</p><p>Sexta e Sábado: 18:00 - 00:00</p><p>Domingo: 17:00 - 23:00</p><p class="text-sm italic">(Feriados: Consulte nossas redes sociais)</p></div>
+                        <div><h3 class="text-lg font-semibold text-neutral-800 mt-4 mb-1">Nosso Endereço:</h3><p>Rua do Bacon Dourado, 123</p><p>Bairro Saboroso, Cidade Feliz - ES</p><p>CEP: 29000-000</p></div>
+                    </div>
+                    <div class="mt-8"><h3 class="text-lg font-semibold text-neutral-800 mb-2">Siga-nos nas Redes:</h3><div class="flex space-x-4"><a href="#" class="text-primary hover:text-orange-700 text-3xl">📷 </a><a href="#" class="text-primary hover:text-orange-700 text-3xl">👍 </a><a href="#" class="text-primary hover:text-orange-700 text-3xl">🎵 </a></div></div>
+                </div>
+                <div class="bg-white rounded-xl shadow-xl p-6 md:p-8">
+                    <h2 class="text-2xl font-bold text-neutral-800 mb-6">Mande uma Mensagem (Simulação)</h2>
+                    <form id="contato-form"><div class="mb-5"><label for="contato-nome" class="block text-sm font-medium text-neutral-700 mb-1">Seu Nome</label><input type="text" id="contato-nome" class="input-admin" placeholder="Nome Completo"></div><div class="mb-5"><label for="contato-email" class="block text-sm font-medium text-neutral-700 mb-1">Seu E-mail</label><input type="email" id="contato-email" class="input-admin" placeholder="email@exemplo.com"></div><div class="mb-5"><label for="contato-assunto" class="block text-sm font-medium text-neutral-700 mb-1">Assunto</label><input type="text" id="contato-assunto" class="input-admin" placeholder="Sobre o que você quer falar?"></div><div class="mb-6"><label for="contato-mensagem" class="block text-sm font-medium text-neutral-700 mb-1">Sua Mensagem</label><textarea id="contato-mensagem" rows="4" class="input-admin" placeholder="Escreva sua mensagem aqui..."></textarea></div><button type="button" onclick="alert('Mensagem enviada com sucesso! (Simulação)')" class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300">Enviar Mensagem</button></form>
+                </div>
+            </div>
+            <div class="mt-10"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3742.6000000000004!2d-40.292499!3d-20.327778!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjDCsDE5JzQwLjAiUyA0MMKwMTcnMzMuMCJX!5e0!3m2!1spt-BR!2sbr!4v1620000000000!5m2!1spt-BR!2sbr" width="100%" height="400" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="rounded-lg shadow-md"></iframe><p class="text-center text-sm text-neutral-500 mt-2">O mapa acima é um exemplo. Substitua pelo embed do seu endereço real.</p></div>
+        `);
+        const footerElement = document.querySelector('footer');
+        if(footerElement && footerElement.innerHTML.trim() === '') { 
+            footerElement.innerHTML = `
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <div class="grid md:grid-cols-3 gap-8 mb-8"><div><h3 class="text-xl font-semibold text-primary mb-3">Weyn's Burger</h3><p class="text-sm">DE BACON À VIDA!</p><p class="text-sm">Rua do Bacon Dourado, 123<br>Bairro Saboroso, Cidade Feliz - ES</p></div><div><h3 class="text-xl font-semibold text-primary mb-3">Links Rápidos</h3><ul class="space-y-1"><li><a href="#" onclick="showSection('cardapio-section', document.querySelector('nav a[onclick*=\\'cardapio-section\\']'))" class="hover:text-primary text-sm">Cardápio</a></li><li><a href="#" onclick="showSection('promocoes-section', document.querySelector('nav a[onclick*=\\'promocoes-section\\']'))" class="hover:text-primary text-sm">Promoções</a></li><li><a href="#" onclick="showSection('clube-section', document.querySelector('nav a[onclick*=\\'clube-section\\']'))" class="hover:text-primary text-sm">Clube Weyn's</a></li><li><a href="#" onclick="showSection('contato-section', document.querySelector('nav a[onclick*=\\'contato-section\\']'))" class="hover:text-primary text-sm">Fale Conosco</a></li></ul></div><div><h3 class="text-xl font-semibold text-primary mb-3">Siga-nos</h3><div class="flex justify-center space-x-4 text-2xl"><a href="#" class="hover:text-primary">📷</a><a href="#" class="hover:text-primary">👍</a><a href="#" class="hover:text-primary">🎵</a></div><p class="text-sm mt-3"><strong>WhatsApp:</strong> (27) 99999-9999</p></div></div>
+                    <div class="border-t border-neutral-700 pt-8"><p class="text-sm">© <span id="currentYearFooter"></span> Weyn's Burger. Todos os direitos reservados.</p><p class="text-xs mt-1">CNPJ: XX.XXX.XXX/0001-XX (Exemplo)</p><p class="text-xs mt-1"><a href="#" class="hover:underline">Política de Privacidade</a> | <a href="#" class="hover:underline">Termos de Uso</a></p></div>
+                </div>`;
+            const currentYearFooterEl = document.getElementById('currentYearFooter');
+            if (currentYearFooterEl) { currentYearFooterEl.textContent = new Date().getFullYear(); }
+        }
+        const toastElement = document.getElementById('toast-notification');
+        if(toastElement && toastElement.innerHTML.trim() === '') toastElement.textContent = 'Item adicionado ao carrinho!';
+        
+        const geminiModalElement = document.getElementById('geminiModal');
+        if(geminiModalElement && !geminiModalElement.querySelector('.modal-content')) { 
+            geminiModalElement.innerHTML = `<div class="modal-content"><span class="close-button" onclick="closeGeminiModal()">×</span><h3 id="geminiModalTitle" class="text-2xl font-bold text-neutral-800 mb-4"></h3><div id="geminiModalBody" class="text-neutral-700 leading-relaxed"><div class="loader" id="geminiLoader" style="display: none;"></div><p id="geminiResponseArea"></p></div><div id="geminiModalActions" class="mt-6 text-right space-x-3"><button id="restoreDescriptionBtn" style="display:none;" class="bg-gray-300 hover:bg-gray-400 text-neutral-800 font-semibold py-2 px-4 rounded-lg transition duration-300">Restaurar Original</button><button onclick="closeGeminiModal()" class="bg-primary hover:bg-primary-hover text-white font-semibold py-2 px-4 rounded-lg transition duration-300">Fechar</button></div></div>`;
+        }
+        
+        fillAdminSubSectionHTML('admin-dashboard-subsection', `
+            <h2 class="text-3xl font-bold text-neutral-800 mb-6">Dashboard</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6"><div class="bg-amber-100 p-4 rounded-lg shadow"><h3 class="text-lg font-semibold text-primary">Pedidos Hoje</h3><p id="dashboard-orders-today" class="text-3xl font-bold text-neutral-700">0</p></div><div class="bg-amber-100 p-4 rounded-lg shadow"><h3 class="text-lg font-semibold text-primary">Faturamento Hoje (Simulado)</h3><p id="dashboard-revenue-today" class="text-3xl font-bold text-neutral-700">R$ 0,00</p></div><div class="bg-amber-100 p-4 rounded-lg shadow"><h3 class="text-lg font-semibold text-primary">Baixo Estoque (Simulado)</h3><p id="dashboard-low-stock-items" class="text-3xl font-bold text-neutral-700">0</p></div></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="bg-white p-4 rounded-lg shadow border"><h3 class="text-xl font-semibold text-neutral-700 mb-3">Vendas Recentes (Simulado)</h3><div class="chart-container h-64"><canvas id="recentSalesChart"></canvas></div></div><div class="bg-white p-4 rounded-lg shadow border"><h3 class="text-xl font-semibold text-neutral-700 mb-3">Itens Mais Populares (Simulado)</h3><div class="chart-container h-64"><canvas id="popularItemsChart"></canvas></div></div></div>`);
+        fillAdminSubSectionHTML('admin-orders-subsection', `
+            <h2 class="text-3xl font-bold text-neutral-800 mb-2">Pedidos Recebidos</h2>
+            <div class="mb-4 flex items-center gap-4"><label for="order-status-filter" class="text-sm font-medium text-neutral-700">Filtrar por status:</label><select id="order-status-filter" class="p-2 border border-neutral-300 rounded-md shadow-sm focus:ring-primary focus:border-primary text-sm"><option value="Todos">Todos</option><option value="Novo">Novo</option><option value="Em Preparo">Em Preparo</option><option value="Pronto para Entrega/Retirada">Pronto</option><option value="Entregue">Entregue</option><option value="Cancelado">Cancelado</option></select></div>
+            <div class="overflow-x-auto"><table class="min-w-full divide-y divide-neutral-200"><thead class="bg-neutral-100"><tr><th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">ID</th><th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Cliente</th><th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Data</th><th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Total</th><th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Status</th><th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Ações</th></tr></thead><tbody id="incoming-orders-table-body" class="bg-white divide-y divide-neutral-200"></tbody></table></div>
+            <div id="no-orders-message" class="text-center py-6 text-neutral-500" style="display:none;">Nenhum pedido encontrado com este status.</div>`);
+        fillAdminSubSectionHTML('admin-menu-subsection', `
+            <h2 class="text-3xl font-bold text-neutral-800 mb-6">Gerenciar Cardápio</h2>
+            <div class="mb-8 p-6 border border-neutral-200 rounded-lg bg-amber-50">
+                <h3 class="text-xl font-semibold text-neutral-700 mb-4" id="menu-form-title-el">Adicionar Novo Item</h3>
+                <form id="adminMenuFormEl" class="space-y-4">
+                    <input type="hidden" id="editItemIdInputEl">
+                    <div><label for="itemNameEl" class="block text-sm font-medium">Nome</label><input type="text" id="itemNameEl" required class="input-admin"></div>
+                    <div><label for="itemDescriptionEl" class="block text-sm font-medium">Descrição</label><textarea id="itemDescriptionEl" rows="3" required class="input-admin"></textarea></div>
+                    <div class="grid grid-cols-2 gap-4"><div><label for="itemPriceEl" class="block text-sm font-medium">Preço</label><input type="number" step="0.01" id="itemPriceEl" required class="input-admin"></div><div><label for="itemStockEl" class="block text-sm font-medium">Estoque</label><input type="number" id="itemStockEl" value="10" class="input-admin"></div></div>
+                    <div><label for="itemIngredientsEl" class="block text-sm font-medium">Ingredientes (vírgula)</label><input type="text" id="itemIngredientsEl" class="input-admin"></div>
+                    <div><label for="itemImageSrcEl" class="block text-sm font-medium">URL Imagem</label><input type="url" id="itemImageSrcEl" required class="input-admin" placeholder="https://placehold.co/..."></div>
+                    <div class="grid grid-cols-2 gap-4"><div><label for="itemCategoryEl" class="block text-sm font-medium">Categoria</label><select id="itemCategoryEl" required class="input-admin"><option value="hamburguer">Hambúrguer</option><option value="porcao">Porção</option><option value="bebida">Bebida</option><option value="sobremesa">Sobremesa</option></select></div><div><label for="itemFeaturedEl" class="block text-sm font-medium">Destaque</label><select id="itemFeaturedEl" class="input-admin"><option value="">Nenhum</option><option value="Novidade">Novidade</option><option value="Mais Vendido">Mais Vendido</option></select></div></div>
+                    <div class="flex items-center"><input type="checkbox" id="itemVisibleEl" checked class="input-admin-check text-primary"><label for="itemVisibleEl" class="ml-2 block text-sm">Visível</label></div>
+                    <div class="flex space-x-3"><button type="submit" class="btn-admin-save">Salvar Item</button><button type="button" onclick="resetMenuForm()" class="btn-admin-cancel">Cancelar</button></div>
+                </form>
+            </div>
+            <div><h3 class="text-xl font-semibold text-neutral-700 mb-4">Itens Atuais</h3><div id="current-menu-items-list" class="space-y-3"></div></div>`);
+        fillAdminSubSectionHTML('admin-customers-subsection', `
+            <h2 class="text-3xl font-bold text-neutral-800 mb-6">Gerenciamento de Clientes (Simulado)</h2>
+            <div class="overflow-x-auto"><table class="min-w-full divide-y divide-neutral-200"><thead class="bg-neutral-100"><tr><th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">ID</th><th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Nome</th><th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Contato</th><th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Total Gasto</th></tr></thead><tbody id="admin-customers-table-body" class="bg-white divide-y divide-neutral-200"></tbody></table></div>`);
+        fillAdminSubSectionHTML('admin-reports-subsection', `
+            <h2 class="text-3xl font-bold text-neutral-800 mb-6">Relatórios (Simulados)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="bg-amber-50 p-4 rounded-lg shadow"><h3 class="text-xl font-semibold text-neutral-700 mb-3">Vendas Diárias</h3><div class="chart-container h-72"><canvas id="dailySalesChart"></canvas></div></div><div class="bg-amber-50 p-4 rounded-lg shadow"><h3 class="text-xl font-semibold text-neutral-700 mb-3">Produtos Mais Vendidos</h3><div class="chart-container h-72"><canvas id="topProductsChart"></canvas></div></div></div>`);
+        fillAdminSubSectionHTML('admin-settings-subsection', `
+            <h2 class="text-3xl font-bold text-neutral-800 mb-6">Configurações da Loja (Simulado)</h2>
+            <form id="store-settings-form" class="space-y-6">
+                <div><label for="setting-store-name" class="block text-sm font-medium">Nome da Loja</label><input type="text" id="setting-store-name" value="Weyn's Burger" class="input-admin"></div>
+                <div><label for="setting-store-phone" class="block text-sm font-medium">Telefone</label><input type="tel" id="setting-store-phone" value="(27) 99999-9999" class="input-admin"></div>
+                <div><label for="setting-store-email" class="block text-sm font-medium">E-mail</label><input type="email" id="setting-store-email" value="contato@weynsburger.com.br" class="input-admin"></div>
+                <div><label for="setting-delivery-fee" class="block text-sm font-medium">Taxa Entrega (R$)</label><input type="number" step="0.01" id="setting-delivery-fee" value="5.00" class="input-admin"></div>
+                <div><label class="block text-sm font-medium">Horário</label><textarea id="setting-opening-hours" rows="3" class="input-admin">Seg-Qui: 18h-23h\nSex-Sáb: 18h-00h\nDom: 17h-23h</textarea></div>
+                <div><span class="block text-sm font-medium">Pagamento</span><div class="mt-2 space-y-2"><label class="inline-flex items-center"><input type="checkbox" checked class="input-admin-check text-primary"> <span class="ml-2">Dinheiro</span></label><br><label class="inline-flex items-center"><input type="checkbox" checked class="input-admin-check text-primary"> <span class="ml-2">Crédito</span></label><br><label class="inline-flex items-center"><input type="checkbox" checked class="input-admin-check text-primary"> <span class="ml-2">Débito</span></label><br><label class="inline-flex items-center"><input type="checkbox" checked class="input-admin-check text-primary"> <span class="ml-2">PIX</span></label></div></div>
+                <button type="button" onclick="alert('Configurações salvas! (Simulação)')" class="btn-admin-save">Salvar Configurações</button>
+            </form>`);
+        
+        const devSubSectionContainer = document.getElementById('admin-developer-subsection');
+        if(devSubSectionContainer && devSubSectionContainer.innerHTML.trim() === '') {
+            // Initially, the developer section will be empty, login is handled by handleDeveloperTabClick
+        }
+
+
+        initializeAdminMenuFormElements(); 
+
+        showSection('home-section', document.querySelector('header nav a.nav-link[onclick*="home-section"]')); 
+        updateCartSummary();
+        renderPublicMenu(); 
+        updateDashboardData(); 
+        renderIncomingOrdersTable();
+        renderCurrentMenuItems();
+        renderAdminCustomersTable();
+        renderAdminReportsCharts();
+        updateDynamicStyles(); 
+    });
+
+    function fillStaticSection(sectionId, content) {
+        const sectionElement = document.getElementById(sectionId);
+        if (sectionElement && sectionElement.innerHTML.trim() === '') {
+            sectionElement.innerHTML = content;
+            if (sectionId === 'home-section') { 
+                const carouselContainer = document.getElementById('promotions-carousel-container');
+                if (carouselContainer) {
+                    // Content for carousel is already in the main HTML for home-section
+                    const newCarouselItems = carouselContainer.querySelectorAll('.carousel-item');
+                    const newPrevBtn = carouselContainer.querySelector('#prevBtn');
+                    const newNextBtn = carouselContainer.querySelector('#nextBtn');
+                    if (newPrevBtn && newNextBtn && newCarouselItems.length > 0) {
+                        currentCarouselIndex = 0; 
+                        showCarouselItem(currentCarouselIndex); 
+                        newPrevBtn.addEventListener('click', () => { prevCarouselItem(); resetAutoSlide(); });
+                        newNextBtn.addEventListener('click', () => { nextCarouselItem(); resetAutoSlide(); });
+                        if(autoSlideInterval) clearInterval(autoSlideInterval); 
+                        function startAutoSlide() { autoSlideInterval = setInterval(nextCarouselItem, 5000); }
+                        function resetAutoSlide() { clearInterval(autoSlideInterval); startAutoSlide(); }
+                        startAutoSlide();
+                    }
+                }
+            } else if (sectionId === 'cardapio-section') {
+                const checkoutFormContainer = document.getElementById('mock-checkout-form-container');
+                if (checkoutFormContainer && checkoutFormContainer.innerHTML.trim() === '') {
+                    checkoutFormContainer.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div><label for="nome" class="block text-sm font-medium text-neutral-700 mb-1">Nome Completo</label><input type="text" id="nome" name="nome" class="input-admin" placeholder="Seu Nome"></div><div><label for="telefone" class="block text-sm font-medium text-neutral-700 mb-1">Telefone / WhatsApp</label><input type="tel" id="telefone" name="telefone" class="input-admin" placeholder="(XX) XXXXX-XXXX"></div></div><div class="mb-6"><label for="endereco" class="block text-sm font-medium text-neutral-700 mb-1">Endereço de Entrega</label><input type="text" id="endereco" name="endereco" class="input-admin" placeholder="Rua, Número, Bairro, Cidade (ou deixe em branco para retirada)"></div><div class="mb-6"><label class="block text-sm font-medium text-neutral-700 mb-1">Forma de Pagamento</label><select id="pagamento" name="pagamento" class="input-admin"><option>Cartão de Crédito na Entrega</option><option>Cartão de Débito na Entrega</option><option>PIX na Entrega</option><option>Dinheiro</option></select></div><button type="button" onclick="handlePlaceOrder()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300">Confirmar Pedido (Mock)</button>`;
+                }
+            }
+        }
+    }
+    function fillAdminSubSectionHTML(sectionId, content) {
+        const sectionElement = document.getElementById(sectionId);
+        if (sectionElement && sectionElement.innerHTML.trim() === '') {
+            sectionElement.innerHTML = content;
+            if(sectionId === 'admin-orders-subsection') {
+                 const filterEl = sectionElement.querySelector('#order-status-filter');
+                 if(filterEl) filterEl.addEventListener('change', renderIncomingOrdersTable);
+            }
+        }
+    }
+
+</script>
+
+</body>
+</html>
