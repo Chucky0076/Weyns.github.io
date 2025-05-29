@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Simple HTML Page</title> <!-- Assuming title from previous index.html -->
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Assuming Chart.js was part of original -->
+    <style>
+        /* Basic styling - assuming some was intended */
+        body { font-family: sans-serif; margin: 0; }
+        header { background-color: #333; color: white; padding: 1em; text-align: center; }
+        nav ul { list-style-type: none; padding: 0; background-color: #444; text-align: center; }
+        nav ul li { display: inline; }
+        nav ul li a { display: inline-block; padding: 1em; text-decoration: none; color: white; }
+        nav ul li a.active, nav ul li a:hover { background-color: #555; }
+        main { padding: 1em; }
+        section { display: none; } /* Sections are hidden by default */
+        section.active { display: block; }
+        footer { background-color: #333; color: white; text-align: center; padding: 1em; position: fixed; bottom: 0; width: 100%; }
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; }
+        .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+        .close-button:hover, .close-button:focus { color: black; text-decoration: none; cursor: pointer; }
+        #admin-panel-section, #developer-panel-section { border: 1px solid #ccc; padding: 10px; margin-top: 10px; }
+        #developer-tools-content div { margin-bottom: 10px; padding: 5px; border: 1px dashed #eee; }
+        /* Add more styles as needed, e.g., for forms, tables, charts */
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Welcome to My Webpage</h1>
+        <button id="mobile-menu-button" style="display:none;">Menu</button> <!-- For mobile -->
+    </header>
+    <nav id="main-nav">
+        <ul>
+            <li><a href="#home" class="nav-link active" onclick="showSection('home', this)">Home</a></li>
+            <li><a href="#menu" class="nav-link" onclick="showSection('menu', this)">Menu</a></li>
+            <li><a href="#orders" class="nav-link" onclick="showSection('orders', this)">Orders</a></li>
+            <li><a href="#admin-login" class="nav-link" onclick="showSection('admin-login', this)">Admin Login</a></li>
+            <li><a href="#admin-panel" class="nav-link" onclick="showSection('admin-panel', this)" style="display:none;">Admin Panel</a></li>
+            <li><a href="#developer-panel" class="nav-link" onclick="showSection('developer-panel', this)">Developer Panel</a></li>
+        </ul>
+    </nav>
+    <div id="mobile-menu" style="display:none;">
+        <a href="#home" class="nav-link active" onclick="showSection('home', this); toggleMobileMenu();">Home</a>
+        <a href="#menu" class="nav-link" onclick="showSection('menu', this); toggleMobileMenu();">Menu</a>
+        <a href="#orders" class="nav-link" onclick="showSection('orders', this); toggleMobileMenu();">Orders</a>
+        <a href="#admin-login" class="nav-link" onclick="showSection('admin-login', this); toggleMobileMenu();">Admin Login</a>
+        <a href="#admin-panel" class="nav-link" onclick="showSection('admin-panel', this); toggleMobileMenu();" style="display:none;">Admin Panel</a>
+        <a href="#developer-panel" class="nav-link" onclick="showSection('developer-panel', this); toggleMobileMenu();">Developer Panel</a>
+    </div>
+
+    <main>
+        <section id="home" class="active">
+            <h2>Home Section</h2>
+            <p>This is the main content of my HTML page. It's a simple example, but it demonstrates the basic structure of an HTML document.</p>
+            <img src="https://via.placeholder.com/400x200" alt="Placeholder Image">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+            <div id="home-static-content"></div>
+        </section>
+
+        <section id="menu">
+            <h2>Our Menu</h2>
+            <div id="public-menu-container"></div>
+            <div id="cart-summary">Cart: 0 items</div>
+            <button onclick="handlePlaceOrder()">Place Order</button>
+            <div id="checkout-visual-mockup"></div>
+        </section>
+
+        <section id="orders">
+            <h2>Your Orders</h2>
+            <p>Order tracking functionality will be here.</p>
+        </section>
+
+        <section id="admin-login">
+            <h2>Admin Login</h2>
+            <form id="admin-login-form">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" value="admin"><br><br>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" value="adminpass"><br><br>
+                <button type="submit">Login</button>
+            </form>
+            <p id="admin-login-error" style="color:red;"></p>
+        </section>
+
+        <section id="admin-panel">
+            <h2>Admin Panel</h2>
+            <nav id="admin-nav">
+                 <a href="#" class="admin-nav-link" data-subsection="dashboard">Dashboard</a> |
+                 <a href="#" class="admin-nav-link" data-subsection="menu-management">Menu Management</a> |
+                 <a href="#" class="admin-nav-link" data-subsection="orders-tracking">Orders Tracking</a>
+            </nav>
+            <div id="admin-subsection-content">
+                <!-- Content injected by fillAdminSubSectionHTML -->
+            </div>
+        </section>
+        
+        <section id="developer-panel">
+            <!-- Developer panel content will be loaded here -->
+        </section>
+
+    </main>
+
+    <footer>
+        <p>&copy; <span id="currentYear"></span> My Simple HTML Page. All rights reserved.</p>
+    </footer>
+
+    <!-- Modals -->
+    <div id="geminiModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeGeminiModal()">&times;</span>
+            <h3 id="geminiModalTitle">AI Suggestions</h3>
+            <p id="geminiModalBody">Loading suggestions...</p>
+            <button id="useGeminiSuggestion">Use Suggestion</button>
+        </div>
+    </div>
+
+    <div id="orderDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeOrderDetailsModal()">&times;</span>
+            <h3>Order Details</h3>
+            <div id="orderDetailsModalBody"></div>
+            <button onclick="printOrderDetails()">Print Order</button>
+        </div>
+    </div>
+
+    <!-- Templates for Developer Panel -->
+    <template id="developer-login-section-content-template">
+        <h2>Developer Login</h2>
+        <form id="developer-login-form">
+            <label for="dev-username">Username:</label>
+            <input type="text" id="dev-username" value="dev"><br>
+            <label for="dev-password">Password:</label>
+            <input type="password" id="dev-password" value="devpass"><br>
+            <button type="submit">Login</button>
+        </form>
+    </template>
+
+    <template id="developer-tools-content-template">
+        <h2>Developer Tools</h2>
+        <p>Settings and tools for development.</p>
+        <div>
+            <h3>Site Global Settings Control</h3>
+            <label for="dev-site-title">Site Title:</label>
+            <input type="text" id="dev-site-title"><br>
+            <label for="dev-theme-color">Theme Color (e.g., #333):</label>
+            <input type="text" id="dev-theme-color"><br>
+            <button id="apply-dev-appearance">Apply Appearance</button>
+        </div>
+        <div>
+            <h3>Static Content Injection</h3>
+            <label for="dev-home-static-content">Home Static Content (HTML):</label><br>
+            <textarea id="dev-home-static-content" rows="4" cols="50"></textarea><br>
+            <button id="apply-dev-static-content">Apply Static Content</button>
+        </div>
+        <button id="reset-developer-settings">Reset to Default Developer Settings</button>
+    </template>
+
+
+    <script>
+    // Global state variables
+    let shoppingCart = []; // Added line
+    let isAdminLoggedIn = false;
+    let isDeveloperLoggedIn = false;
+    let currentOrderToPrint = null;
+    let isCustomerViewMode = false; 
+    // The 'shoppingCart = []' will be added in a subsequent step as per specific instruction.
+
+    // Default settings (could be fetched or stored more robustly)
+    const defaultSiteGlobalSettings = {
+        siteTitle: "My Simple HTML Page",
+        themeColor: "#333", // Default theme color
+        homeStaticContent: "<p>Welcome to our dynamic restaurant!</p>"
+    };
+
+    const defaultMenuData = [
+        { id: 1, name: "Burger Classic", category: "Burgers", price: 10.99, description: "A classic beef burger.", stock: 50, isVisible: true, image: "https://via.placeholder.com/100" },
+        { id: 2, name: "Cheese Burger", category: "Burgers", price: 12.99, description: "Beef burger with cheese.", stock: 40, isVisible: true, image: "https://via.placeholder.com/100" },
+        { id: 3, name: "Fries", category: "Sides", price: 3.99, description: "Crispy golden fries.", stock: 100, isVisible: true, image: "https://via.placeholder.com/100" },
+        { id: 4, name: "Hidden Item", category: "Secret", price: 99.99, description: "You found me!", stock: 1, isVisible: false, image: "https://via.placeholder.com/100" }
+    ];
+
+    const defaultIncomingOrders = [
+        { orderId: "ORD1001", customerName: "Alice", items: [{ name: "Burger Classic", quantity: 1 }], status: "Pending", total: 10.99 },
+        { orderId: "ORD1002", customerName: "Bob", items: [{ name: "Cheese Burger", quantity: 2 }, { name: "Fries", quantity: 1 }], status: "Preparing", total: 29.97 }
+    ];
+
+    // Live data (initialized with defaults, but could be modified by admin actions)
+    let siteGlobalSettings = JSON.parse(JSON.stringify(defaultSiteGlobalSettings));
+    let menuData = JSON.parse(JSON.stringify(defaultMenuData));
+    let incomingOrders = JSON.parse(JSON.stringify(defaultIncomingOrders));
+    
+    // Chart instances (to prevent re-creation)
+    let maisPedidosChartInstance = null;
+    let recentSalesChartInstance = null;
+    let stockLevelsChartInstance = null;
+    let orderStatusChartInstance = null;
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initial setup
+        showSection('home', document.querySelector('nav ul li a[href="#home"]'));
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        renderPublicMenu();
+        updateCartSummary(); // Initialize cart summary
+        
+        // Attach event listeners
+        const adminLoginFormEl = document.getElementById('admin-login-form');
+        if (adminLoginFormEl) {
+            adminLoginFormEl.addEventListener('submit', handleAdminLogin);
+        }
+
+        const mobileMenuButtonEl = document.getElementById('mobile-menu-button');
+        if (mobileMenuButtonEl) {
+            mobileMenuButtonEl.addEventListener('click', toggleMobileMenu);
+        }
+        
+        const adminNavLinks = document.querySelectorAll('#admin-nav a.admin-nav-link');
+        adminNavLinks.forEach(link => {
+            link.addEventListener('click', function(event) {
+                event.preventDefault();
+                const subsection = this.dataset.subsection;
+                fillAdminSubSectionHTML(subsection);
+                // Could also update active state for admin nav links here
+            });
+        });
+
+        // Initial call for developer panel setup
+        handleDeveloperTabClick(); 
+        fillStaticSection('home'); // Example of filling static content for home
+
+        // Default to admin dashboard if admin is already logged in (e.g. after a page refresh)
+        if (isAdminLoggedIn) {
+            showSection('admin-panel', document.querySelector('nav ul li a[href="#admin-panel"]'));
+            fillAdminSubSectionHTML('dashboard'); // Show dashboard by default
+        }
+    });
+
+    function showSection(sectionId, navLinkElement) {
+        if (sectionId === 'admin-panel' && !isAdminLoggedIn) {
+            showSection('admin-login', document.querySelector('nav ul li a[href="#admin-login"]'));
+            return;
+        }
+
+        document.querySelectorAll('main section').forEach(section => {
+            section.classList.remove('active');
+        });
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+            targetSection.classList.add('active');
+        }
+        setActiveNavLink(navLinkElement);
+
+        if (sectionId === 'developer-panel') {
+            handleDeveloperTabClick(); // Ensure content is loaded
+        }
+        if (sectionId === 'admin-panel' && isAdminLoggedIn) {
+             if (!document.getElementById('admin-subsection-content').innerHTML.trim()) {
+                fillAdminSubSectionHTML('dashboard'); // Load dashboard if nothing is there
+            }
+        }
+    }
+
+    function setActiveNavLink(activeLink) {
+        document.querySelectorAll('#main-nav ul li a.nav-link, #mobile-menu a.nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        if (activeLink) {
+            // Need to find corresponding links in both navs if they exist
+            const href = activeLink.getAttribute('href');
+            document.querySelectorAll(`#main-nav ul li a.nav-link[href="${href}"], #mobile-menu a.nav-link[href="${href}"]`).forEach(l => {
+                l.classList.add('active');
+            });
+        }
+    }
+    
+    function toggleMobileMenu() {
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenu) {
+            mobileMenu.style.display = mobileMenu.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    function handleAdminLogin(event) {
+        event.preventDefault();
+        const usernameEl = document.getElementById('username');
+        const passwordEl = document.getElementById('password');
+        const errorEl = document.getElementById('admin-login-error');
+
+        if (usernameEl.value === 'admin' && passwordEl.value === 'adminpass') {
+            isAdminLoggedIn = true;
+            errorEl.textContent = '';
+            document.querySelector('nav ul li a[href="#admin-panel"]').style.display = 'inline'; // Show Admin Panel link
+            document.querySelector('#mobile-menu a[href="#admin-panel"]').style.display = 'block';
+            showSection('admin-panel', document.querySelector('nav ul li a[href="#admin-panel"]'));
+            fillAdminSubSectionHTML('dashboard'); // Default to dashboard
+        } else {
+            errorEl.textContent = 'Invalid credentials.';
+            isAdminLoggedIn = false;
+        }
+    }
+
+    function renderPublicMenu() {
+        const menuContainer = document.getElementById('public-menu-container');
+        if (!menuContainer) return;
+        menuContainer.innerHTML = ''; // Clear existing items
+        menuData.filter(item => item.isVisible).forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'menu-item';
+            itemDiv.innerHTML = `
+                <img src="${item.image}" alt="${item.name}" style="width:50px; height:50px;">
+                <h3>${item.name}</h3>
+                <p>${item.description}</p>
+                <p>Price: $${item.price.toFixed(2)}</p>
+                <p>Stock: ${item.stock > 0 ? item.stock : 'Out of stock'}</p>
+                <button class="add-to-cart-btn" data-item-id="${item.id}" ${item.stock === 0 ? 'disabled' : ''}>Add to Cart</button>
+                <button class="generate-description-btn" data-item-name="${item.name}">Generate AI Description</button>
+            `;
+            menuContainer.appendChild(itemDiv);
+        });
+        updateCartButtonsEventListeners();
+        updateGenerateDescriptionEventListeners();
+    }
+    
+    function updateCartButtonsEventListeners() {
+        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const itemId = parseInt(this.dataset.itemId);
+                handleAddToCartClick(itemId);
+            });
+        });
+    }
+
+    function updateGenerateDescriptionEventListeners() {
+        document.querySelectorAll('.generate-description-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const itemName = this.dataset.itemName;
+                handleGenerateDescriptionClick(itemName, this.parentElement);
+            });
+        });
+    }
+    
+    // Admin Panel Specific Functions
+    function fillAdminSubSectionHTML(subsectionName) {
+        const contentArea = document.getElementById('admin-subsection-content');
+        if (!contentArea) return;
+
+        contentArea.innerHTML = ''; // Clear previous content
+        let htmlContent = `<h3>${subsectionName.replace('-', ' ').toUpperCase()}</h3>`;
+
+        if (subsectionName === 'dashboard') {
+            htmlContent += `
+                <div style="display:flex; justify-content: space-around; flex-wrap: wrap;">
+                    <div style="width:45%;"><canvas id="maisPedidosChart"></canvas></div>
+                    <div style="width:45%;"><canvas id="recentSalesChart"></canvas></div>
+                    <div style="width:45%; margin-top:20px;"><canvas id="stockLevelsChart"></canvas></div>
+                    <div style="width:45%; margin-top:20px;"><canvas id="orderStatusChart"></canvas></div>
+                </div>`;
+            contentArea.innerHTML = htmlContent;
+            renderDashboardCharts();
+        } else if (subsectionName === 'menu-management') {
+            htmlContent += `
+                <form id="admin-menu-form">
+                    <h4 id="menu-form-title">Add New Menu Item</h4>
+                    <input type="hidden" id="edit-item-id" value="">
+                    <div><label>Name: <input type="text" id="item-name" required></label></div>
+                    <div><label>Category: <select id="item-category">
+                        <option value="Burgers">Burgers</option>
+                        <option value="Sides">Sides</option>
+                        <option value="Drinks">Drinks</option>
+                        </select></label> <input type="text" id="new-item-category" placeholder="Or new category"></div>
+                    <div><label>Price: <input type="number" id="item-price" step="0.01" required></label></div>
+                    <div><label>Description: <textarea id="item-description"></textarea></label></div>
+                    <div><label>Stock: <input type="number" id="item-stock" required></label></div>
+                    <div><label>Image URL: <input type="text" id="item-image" value="https://via.placeholder.com/100"></label></div>
+                    <div><label>Is Visible: <input type="checkbox" id="item-isvisible" checked></label></div>
+                    <button type="submit">Save Item</button> <button type="button" id="cancel-edit-btn" style="display:none;">Cancel Edit</button>
+                </form>
+                <hr>
+                <h4>Current Menu Items</h4>
+                <div id="current-menu-items-list"></div>
+            `;
+            contentArea.innerHTML = htmlContent;
+            initializeAdminMenuFormElements();
+            renderCurrentMenuItems();
+        } else if (subsectionName === 'orders-tracking') {
+            htmlContent += `
+                <div><label>Filter by status: <select id="order-status-filter">
+                    <option value="all">All</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Preparing">Preparing</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select></label></div>
+                <table border="1" style="width:100%; margin-top:10px;">
+                    <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="incoming-orders-table"></tbody>
+                </table>`;
+            contentArea.innerHTML = htmlContent;
+            renderIncomingOrdersTable();
+            const orderStatusFilterEl = document.getElementById('order-status-filter');
+            if(orderStatusFilterEl) orderStatusFilterEl.addEventListener('change', () => renderIncomingOrdersTable(orderStatusFilterEl.value));
+        } else {
+            contentArea.innerHTML = "<p>This section is under construction.</p>";
+        }
+    }
+
+    function initializeAdminMenuFormElements() {
+        const form = document.getElementById('admin-menu-form');
+        if (form) form.addEventListener('submit', handleAdminMenuFormSubmit);
+        const cancelBtn = document.getElementById('cancel-edit-btn');
+        if(cancelBtn) cancelBtn.addEventListener('click', resetAdminMenuForm);
+    }
+
+    function handleAdminMenuFormSubmit(event) {
+        event.preventDefault();
+        const editId = document.getElementById('edit-item-id').value;
+        const name = document.getElementById('item-name').value;
+        let category = document.getElementById('item-category').value;
+        const newCategory = document.getElementById('new-item-category').value;
+        if (newCategory.trim() !== '') category = newCategory.trim();
+        
+        const newItem = {
+            id: editId ? parseInt(editId) : Date.now(), // Use existing ID for edit, new for add
+            name: name,
+            category: category,
+            price: parseFloat(document.getElementById('item-price').value),
+            description: document.getElementById('item-description').value,
+            stock: parseInt(document.getElementById('item-stock').value),
+            isVisible: document.getElementById('item-isvisible').checked,
+            image: document.getElementById('item-image').value
+        };
+
+        if (editId) { // Editing existing item
+            const index = menuData.findIndex(item => item.id === newItem.id);
+            if (index !== -1) menuData[index] = newItem;
+        } else { // Adding new item
+            menuData.push(newItem);
+        }
+        renderCurrentMenuItems();
+        renderPublicMenu(); // Update public view
+        resetAdminMenuForm();
+    }
+    
+    function resetAdminMenuForm() {
+        document.getElementById('admin-menu-form').reset();
+        document.getElementById('edit-item-id').value = '';
+        document.getElementById('menu-form-title').textContent = 'Add New Menu Item';
+        document.getElementById('new-item-category').value = '';
+        const cancelBtn = document.getElementById('cancel-edit-btn');
+        if(cancelBtn) cancelBtn.style.display = 'none';
+        document.getElementById('item-name').focus();
+    }
+
+    function renderCurrentMenuItems() {
+        const listContainer = document.getElementById('current-menu-items-list');
+        if (!listContainer) return;
+        listContainer.innerHTML = '<table border="1" style="width:100%;"><thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Visible</th><th>Actions</th></tr></thead><tbody></tbody></table>';
+        const tableBody = listContainer.querySelector('tbody');
+        
+        menuData.forEach(item => {
+            const row = tableBody.insertRow();
+            row.innerHTML = `
+                <td>${item.name}</td>
+                <td>${item.category}</td>
+                <td>${item.price.toFixed(2)}</td>
+                <td>${item.stock}</td>
+                <td>${item.isVisible ? 'Yes' : 'No'}</td>
+                <td>
+                    <button onclick="editMenuItem(${item.id})">Edit</button>
+                    <button onclick="deleteMenuItem(${item.id})">Delete</button>
+                </td>
+            `;
+        });
+    }
+
+    function editMenuItem(itemId) {
+        const item = menuData.find(i => i.id === itemId);
+        if (!item) return;
+        document.getElementById('edit-item-id').value = item.id;
+        document.getElementById('item-name').value = item.name;
+        document.getElementById('item-category').value = item.category;
+        document.getElementById('item-price').value = item.price;
+        document.getElementById('item-description').value = item.description;
+        document.getElementById('item-stock').value = item.stock;
+        document.getElementById('item-isvisible').checked = item.isVisible;
+        document.getElementById('item-image').value = item.image;
+        document.getElementById('menu-form-title').textContent = 'Edit Menu Item: ' + item.name;
+        document.getElementById('new-item-category').value = ''; // Clear new category field
+        const cancelBtn = document.getElementById('cancel-edit-btn');
+        if(cancelBtn) cancelBtn.style.display = 'inline';
+        document.getElementById('item-name').focus();
+    }
+
+    function deleteMenuItem(itemId) {
+        if (confirm('Are you sure you want to delete this item?')) {
+            menuData = menuData.filter(item => item.id !== itemId);
+            renderCurrentMenuItems();
+            renderPublicMenu(); // Update public view
+        }
+    }
+    
+    function renderIncomingOrdersTable(statusFilter = 'all') {
+        const tableBody = document.getElementById('incoming-orders-table');
+        if (!tableBody) return;
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        const filteredOrders = (statusFilter === 'all') ? incomingOrders : incomingOrders.filter(order => order.status === statusFilter);
+
+        filteredOrders.forEach(order => {
+            const row = tableBody.insertRow();
+            const itemsString = order.items.map(item => `${item.name} (x${item.quantity})`).join(', ');
+            row.innerHTML = `
+                <td>${order.orderId}</td>
+                <td>${order.customerName}</td>
+                <td>${itemsString}</td>
+                <td>$${order.total.toFixed(2)}</td>
+                <td>
+                    <select class="order-status-dropdown" data-order-id="${order.orderId}">
+                        <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                        <option value="Preparing" ${order.status === 'Preparing' ? 'selected' : ''}>Preparing</option>
+                        <option value="Completed" ${order.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                        <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                    </select>
+                </td>
+                <td>
+                    <button onclick="openOrderDetailsModal('${order.orderId}')">Details</button>
+                </td>
+            `;
+        });
+        
+        // Add event listeners to new status dropdowns
+        document.querySelectorAll('.order-status-dropdown').forEach(dropdown => {
+            dropdown.addEventListener('change', function() {
+                updateOrderStatus(this.dataset.orderId, this.value);
+            });
+        });
+    }
+
+    function updateOrderStatus(orderId, newStatus) {
+        const order = incomingOrders.find(o => o.orderId === orderId);
+        if (order) {
+            order.status = newStatus;
+            // In a real app, you'd save this change to a backend.
+            // For now, just re-render the table (or update the specific row if optimized).
+            renderIncomingOrdersTable(document.getElementById('order-status-filter') ? document.getElementById('order-status-filter').value : 'all');
+            if (orderStatusChartInstance) renderOrderStatusChart(orderStatusChartInstance); // Update chart
+        }
+    }
+
+    // Chart rendering functions for Admin Dashboard
+    function renderDashboardCharts() {
+        if (maisPedidosChartInstance) maisPedidosChartInstance.destroy();
+        const maisPedidosCtx = document.getElementById('maisPedidosChart')?.getContext('2d');
+        if (maisPedidosCtx) {
+            const popularItems = menuData.sort((a,b) => b.stock - a.stock).slice(0, 5); // Example: most stocked
+            maisPedidosChartInstance = new Chart(maisPedidosCtx, {
+                type: 'bar',
+                data: {
+                    labels: popularItems.map(item => item.name),
+                    datasets: [{ label: 'Stock Quantity', data: popularItems.map(item => item.stock) }]
+                }
+            });
+        }
+
+        if (recentSalesChartInstance) recentSalesChartInstance.destroy();
+        const recentSalesCtx = document.getElementById('recentSalesChart')?.getContext('2d');
+        if (recentSalesCtx) {
+             const salesData = incomingOrders.filter(o => o.status === "Completed").slice(-10); // Last 10 completed
+            recentSalesChartInstance = new Chart(recentSalesCtx, {
+                type: 'line',
+                data: {
+                    labels: salesData.map(order => order.orderId),
+                    datasets: [{ label: 'Order Total', data: salesData.map(order => order.total) }]
+                }
+            });
+        }
+        
+        if (stockLevelsChartInstance) stockLevelsChartInstance.destroy();
+        const stockLevelsCtx = document.getElementById('stockLevelsChart')?.getContext('2d');
+        if (stockLevelsCtx) {
+            renderStockLevelsChart(stockLevelsCtx);
+        }
+
+        if (orderStatusChartInstance) orderStatusChartInstance.destroy();
+        const orderStatusCtx = document.getElementById('orderStatusChart')?.getContext('2d');
+        if (orderStatusCtx) {
+            renderOrderStatusChart(orderStatusCtx);
+        }
+    }
+
+    function renderStockLevelsChart(ctxOrInstance) {
+        const lowStockItems = menuData.filter(item => item.stock < 20 && item.isVisible).sort((a,b) => a.stock - b.stock);
+        const chartData = {
+            labels: lowStockItems.map(item => item.name),
+            datasets: [{
+                label: 'Stock Levels (Low)',
+                data: lowStockItems.map(item => item.stock),
+                backgroundColor: lowStockItems.map(item => item.stock < 10 ? 'rgba(255, 99, 132, 0.5)' : 'rgba(255, 205, 86, 0.5)')
+            }]
+        };
+        if (ctxOrInstance instanceof Chart) { // It's an instance
+            ctxOrInstance.data = chartData;
+            ctxOrInstance.update();
+        } else { // It's a context
+            stockLevelsChartInstance = new Chart(ctxOrInstance, { type: 'pie', data: chartData });
+        }
+    }
+
+    function renderOrderStatusChart(ctxOrInstance) {
+        const statusCounts = incomingOrders.reduce((acc, order) => {
+            acc[order.status] = (acc[order.status] || 0) + 1;
+            return acc;
+        }, {});
+        const chartData = {
+            labels: Object.keys(statusCounts),
+            datasets: [{
+                label: 'Order Statuses',
+                data: Object.values(statusCounts),
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'] // Example colors
+            }]
+        };
+         if (ctxOrInstance instanceof Chart) { // It's an instance
+            ctxOrInstance.data = chartData;
+            ctxOrInstance.update();
+        } else { // It's a context
+            orderStatusChartInstance = new Chart(ctxOrInstance, { type: 'doughnut', data: chartData });
+        }
+    }
+
+    // Modal functions
+    function openGeminiModal(title, bodyGenerator, onUseSuggestion) {
+        document.getElementById('geminiModalTitle').textContent = title;
+        document.getElementById('geminiModalBody').innerHTML = '<i>Generating suggestions...</i>';
+        document.getElementById('geminiModal').style.display = 'block';
+        
+        bodyGenerator(function(generatedBody) {
+            document.getElementById('geminiModalBody').innerHTML = generatedBody;
+            const useBtn = document.getElementById('useGeminiSuggestion');
+            useBtn.onclick = onUseSuggestion; // Reassign click handler
+        });
+    }
+
+    function closeGeminiModal() {
+        document.getElementById('geminiModal').style.display = 'none';
+    }
+    
+    function openOrderDetailsModal(orderId) {
+        const order = incomingOrders.find(o => o.orderId === orderId);
+        if (!order) return;
+        currentOrderToPrint = order; // Store for printing
+        const detailsBody = document.getElementById('orderDetailsModalBody');
+        const itemsHtml = order.items.map(item => `<li>${item.name} (x${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}</li>`).join('');
+        detailsBody.innerHTML = `
+            <p><strong>Order ID:</strong> ${order.orderId}</p>
+            <p><strong>Customer:</strong> ${order.customerName}</p>
+            <p><strong>Status:</strong> ${order.status}</p>
+            <p><strong>Items:</strong><ul>${itemsHtml}</ul></p>
+            <p><strong>Total:</strong> $${order.total.toFixed(2)}</p>
+        `;
+        document.getElementById('orderDetailsModal').style.display = 'block';
+    }
+
+    function closeOrderDetailsModal() {
+        document.getElementById('orderDetailsModal').style.display = 'none';
+        currentOrderToPrint = null;
+    }
+
+    function printOrderDetails() {
+        if (!currentOrderToPrint) return;
+        const order = currentOrderToPrint;
+        // This is a mock print. A real one would use window.print() and print-specific CSS.
+        let printContent = "--- RECEIPT ---\n";
+        printContent += `Order ID: ${order.orderId}\n`;
+        printContent += `Customer: ${order.customerName}\n`;
+        printContent += "Items:\n";
+        order.items.forEach(item => {
+            printContent += `  - ${item.name} (x${item.quantity})\n`;
+        });
+        printContent += `Total: $${order.total.toFixed(2)}\n`;
+        printContent += "----------------\nThank you!";
+        console.log("Printing Order:\n", printContent); // Mock print to console
+        alert("Receipt printed to console (mock).");
+    }
+
+    // Gemini API Mock & Related functions
+    let geminiSuggestionsEnabled = true; // Toggle for enabling/disabling API calls
+
+    function callGeminiAPI(prompt, callback) {
+        if (!geminiSuggestionsEnabled) {
+            callback("AI suggestions are currently disabled.");
+            return;
+        }
+        console.log("Mock Gemini API call with prompt:", prompt);
+        // Simulate API delay
+        setTimeout(() => {
+            // Mock responses based on prompt keywords
+            if (prompt.includes("description for")) {
+                const itemName = prompt.substring(prompt.indexOf("for") + 4).trim();
+                callback(`This delicious ${itemName} is crafted with the finest ingredients, offering a unique taste experience. Perfect for any occasion!`);
+            } else if (prompt.includes("accompaniments for")) {
+                callback("Suggested accompaniments: Crispy Fries, Fresh Salad, Onion Rings.");
+            } else {
+                callback("This is a generic AI suggestion. Consider highlighting seasonal specials or popular choices.");
+            }
+        }, 1000);
+    }
+
+    function handleGenerateDescriptionClick(itemName, menuItemDiv) {
+        const currentDescriptionEl = menuItemDiv.querySelector('p:nth-of-type(1)'); // Assuming first <p> is description
+        openGeminiModal(
+            `AI Description for ${itemName}`,
+            function(updateModalBody) { // bodyGenerator
+                callGeminiAPI(`Generate a catchy menu description for ${itemName}`, function(suggestion) {
+                    updateModalBody(suggestion);
+                });
+            },
+            function() { // onUseSuggestion
+                if (currentDescriptionEl) {
+                    currentDescriptionEl.textContent = document.getElementById('geminiModalBody').textContent;
+                }
+                closeGeminiModal();
+            }
+        );
+    }
+    
+    // Cart and Order Placement Mock
+    // let shoppingCart = []; // THIS IS THE LINE THAT WILL BE ADDED IN THE NEXT STEP
+
+    function handleAddToCartClick(itemId) {
+        const item = menuData.find(i => i.id === itemId && i.stock > 0);
+        if (item) {
+            // This is where 'shoppingCart' would be used. For now, we'll just log.
+            // shoppingCart.push({...item, quantity: 1}); // Example if shoppingCart existed
+            console.log("Attempted to add item to cart (shoppingCart not yet implemented):", item.name);
+            alert(`${item.name} would be added to cart. Stock: ${item.stock}`);
+            // item.stock--; // Decrement stock (if cart logic was complete)
+            // renderPublicMenu(); // Re-render to update stock display
+            updateCartSummary();
+        } else {
+            alert("Item out of stock or not found!");
+        }
+    }
+
+    function updateCartSummary() {
+        const cartSummaryEl = document.getElementById('cart-summary');
+        // const itemCount = shoppingCart.reduce((sum, item) => sum + item.quantity, 0);
+        // const totalAmount = shoppingCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        // cartSummaryEl.textContent = `Cart: ${itemCount} items | Total: $${totalAmount.toFixed(2)}`;
+        
+        // Placeholder until shoppingCart is properly implemented:
+        if (cartSummaryEl) cartSummaryEl.textContent = "Cart: 0 items (shoppingCart not implemented)";
+        
+        // Mock visual for checkout
+        const checkoutVisualEl = document.getElementById('checkout-visual-mockup');
+        if (checkoutVisualEl) {
+            // checkoutVisualEl.innerHTML = shoppingCart.map(item => `<div>${item.name} x ${item.quantity}</div>`).join('');
+            checkoutVisualEl.innerHTML = ""; // Clear until shoppingCart is used
+        }
+    }
+
+    function handlePlaceOrder() {
+        // if (shoppingCart.length === 0) {
+        //     alert("Your cart is empty!");
+        //     return;
+        // }
+        // const newOrder = {
+        //     orderId: "ORD" + Date.now(),
+        //     customerName: "Guest", // Or get from a form
+        //     items: JSON.parse(JSON.stringify(shoppingCart)), // Deep copy
+        //     status: "Pending",
+        //     total: shoppingCart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+        // };
+        // incomingOrders.push(newOrder);
+        // shoppingCart = []; // Clear cart
+        
+        alert("Order placement functionality requires 'shoppingCart' to be implemented.");
+        updateCartSummary();
+        // renderIncomingOrdersTable(); // If admin view is active
+        console.log("Order placed (mock):", /*newOrder*/);
+    }
+
+    // Developer Panel Logic
+    function handleDeveloperTabClick() {
+        const devPanelSection = document.getElementById('developer-panel');
+        if (!devPanelSection) return;
+
+        if (!isDeveloperLoggedIn) {
+            const loginTemplate = document.getElementById('developer-login-section-content-template');
+            if (loginTemplate) {
+                devPanelSection.innerHTML = ''; // Clear previous content
+                devPanelSection.appendChild(loginTemplate.content.cloneNode(true));
+                const devLoginForm = document.getElementById('developer-login-form');
+                if (devLoginForm) devLoginForm.addEventListener('submit', handleDeveloperLogin);
+            } else {
+                devPanelSection.innerHTML = "<p>Developer login template not found.</p>";
+            }
+        } else {
+            loadDeveloperToolsContent();
+        }
+    }
+
+    function handleDeveloperLogin(event) {
+        event.preventDefault();
+        const usernameEl = document.getElementById('dev-username');
+        const passwordEl = document.getElementById('dev-password');
+        if (usernameEl.value === 'dev' && passwordEl.value === 'devpass') {
+            isDeveloperLoggedIn = true;
+            loadDeveloperToolsContent();
+        } else {
+            alert('Developer login failed.');
+            isDeveloperLoggedIn = false;
+        }
+    }
+
+    function loadDeveloperToolsContent() {
+        const devPanelSection = document.getElementById('developer-panel');
+        const toolsTemplate = document.getElementById('developer-tools-content-template');
+        if (devPanelSection && toolsTemplate) {
+            devPanelSection.innerHTML = ''; // Clear login form
+            devPanelSection.appendChild(toolsTemplate.content.cloneNode(true));
+            
+            // Populate inputs with current global settings
+            document.getElementById('dev-site-title').value = siteGlobalSettings.siteTitle;
+            document.getElementById('dev-theme-color').value = siteGlobalSettings.themeColor;
+            document.getElementById('dev-home-static-content').value = siteGlobalSettings.homeStaticContent;
+
+            // Add event listeners for dev tools
+            document.getElementById('apply-dev-appearance').addEventListener('click', applyDevAppearanceSettings);
+            document.getElementById('apply-dev-static-content').addEventListener('click', applyDevStaticContentSettings);
+            document.getElementById('reset-developer-settings').addEventListener('click', resetDeveloperSettingsToDefault);
+        } else if (devPanelSection) {
+            devPanelSection.innerHTML = "<p>Developer tools template not found.</p>";
+        }
+    }
+    
+    function applyDevAppearanceSettings() {
+        siteGlobalSettings.siteTitle = document.getElementById('dev-site-title').value;
+        siteGlobalSettings.themeColor = document.getElementById('dev-theme-color').value;
+        // Apply changes dynamically (example)
+        document.title = siteGlobalSettings.siteTitle;
+        document.querySelector('header').style.backgroundColor = siteGlobalSettings.themeColor;
+        document.querySelector('footer').style.backgroundColor = siteGlobalSettings.themeColor;
+        alert('Developer appearance settings applied!');
+    }
+
+    function applyDevStaticContentSettings() {
+        siteGlobalSettings.homeStaticContent = document.getElementById('dev-home-static-content').value;
+        fillStaticSection('home'); // Re-fill home section with new static content
+        alert('Developer static content settings applied to Home section!');
+    }
+    
+    function resetDeveloperSettingsToDefault() {
+        siteGlobalSettings = JSON.parse(JSON.stringify(defaultSiteGlobalSettings));
+        // Re-apply default settings
+        document.getElementById('dev-site-title').value = siteGlobalSettings.siteTitle;
+        document.getElementById('dev-theme-color').value = siteGlobalSettings.themeColor;
+        document.getElementById('dev-home-static-content').value = siteGlobalSettings.homeStaticContent;
+        
+        applyDevAppearanceSettings(); // Apply visual defaults
+        fillStaticSection('home');    // Apply content defaults
+        alert('Developer settings reset to default!');
+    }
+
+    // Function to fill static sections (example for home)
+    function fillStaticSection(sectionId) {
+        if (sectionId === 'home') {
+            const homeStaticContentEl = document.getElementById('home-static-content');
+            if (homeStaticContentEl) {
+                homeStaticContentEl.innerHTML = siteGlobalSettings.homeStaticContent;
+            }
+        }
+        // Add more else if blocks for other sections if needed
+    }
+
+    // Catch-all for clicks on modals to close them if outside content
+    window.onclick = function(event) {
+        const geminiModal = document.getElementById('geminiModal');
+        const orderDetailsModal = document.getElementById('orderDetailsModal');
+        if (event.target == geminiModal) {
+            closeGeminiModal();
+        }
+        if (event.target == orderDetailsModal) {
+            closeOrderDetailsModal();
+        }
+    }
+
+    // Add simple event listeners for forms mentioned in HTML but not fully handled
+    const clubeForm = document.getElementById('clube-form'); // Assuming an ID like this
+    if(clubeForm) clubeForm.addEventListener('click', () => alert('Formulário "Clube" clicado!'));
+    
+    const contatoForm = document.getElementById('contato-form'); // Assuming an ID like this
+    if(contatoForm) contatoForm.addEventListener('click', () => alert('Formulário "Contato" clicado!'));
+
+    </script>
+</body>
+</html>
